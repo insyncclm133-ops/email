@@ -204,6 +204,7 @@ export type Database = {
           category: string | null
           content: string
           created_at: string
+          exotel_template_id: string | null
           id: string
           language: string | null
           name: string
@@ -215,6 +216,7 @@ export type Database = {
           category?: string | null
           content: string
           created_at?: string
+          exotel_template_id?: string | null
           id?: string
           language?: string | null
           name: string
@@ -226,6 +228,7 @@ export type Database = {
           category?: string | null
           content?: string
           created_at?: string
+          exotel_template_id?: string | null
           id?: string
           language?: string | null
           name?: string

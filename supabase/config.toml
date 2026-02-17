@@ -1,1 +1,4 @@
 project_id = "xuhukheinlfmdbazvglj"
+
+[functions.manage-templates]
+verify_jwt = false
