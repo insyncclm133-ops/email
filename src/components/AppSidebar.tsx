@@ -9,6 +9,7 @@ import {
   LogOut,
   MessageCircle,
   Settings,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const navItems = [
   { to: "/communications", icon: MessageSquare, label: "Communications" },
   { to: "/reports", icon: BarChart3, label: "Reports" },
   { to: "/settings", icon: Settings, label: "Settings" },
+  { to: "/users", icon: ShieldCheck, label: "User Management" },
 ];
 
 export function AppSidebar() {
