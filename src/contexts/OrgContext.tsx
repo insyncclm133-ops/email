@@ -51,7 +51,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchOrgs = useCallback(async () => {
-    if (!user) {
+    if (!user || isPlatformAdmin) {
       setOrgs([]);
       setCurrentOrg(null);
       setOrgRole(null);
@@ -72,27 +72,19 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
     setOrgs(mapped);
 
-    // Platform admins always stay on platform overview
-    if (isPlatformAdmin) {
+    const savedOrgId = localStorage.getItem(LS_KEY);
+    const savedMembership = mapped.find((m) => m.org_id === savedOrgId);
+
+    if (savedMembership) {
+      setCurrentOrg(savedMembership.organization);
+      setOrgRole(savedMembership.role);
+    } else if (mapped.length > 0) {
+      setCurrentOrg(mapped[0].organization);
+      setOrgRole(mapped[0].role);
+      localStorage.setItem(LS_KEY, mapped[0].org_id);
+    } else {
       setCurrentOrg(null);
       setOrgRole(null);
-      localStorage.removeItem(LS_KEY);
-    } else {
-      // Determine current org for regular users
-      const savedOrgId = localStorage.getItem(LS_KEY);
-      const savedMembership = mapped.find((m) => m.org_id === savedOrgId);
-
-      if (savedMembership) {
-        setCurrentOrg(savedMembership.organization);
-        setOrgRole(savedMembership.role);
-      } else if (mapped.length > 0) {
-        setCurrentOrg(mapped[0].organization);
-        setOrgRole(mapped[0].role);
-        localStorage.setItem(LS_KEY, mapped[0].org_id);
-      } else {
-        setCurrentOrg(null);
-        setOrgRole(null);
-      }
     }
 
     setLoading(false);
