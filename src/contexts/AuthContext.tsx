@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => checkPlatformAdmin(session.user.id), 0);
+          await checkPlatformAdmin(session.user.id);
         } else {
           setIsPlatformAdmin(false);
         }
@@ -48,11 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        checkPlatformAdmin(session.user.id);
+        await checkPlatformAdmin(session.user.id);
       }
       setLoading(false);
     });
