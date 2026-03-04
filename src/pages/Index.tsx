@@ -49,8 +49,8 @@ export default function Index() {
     fetchStats();
   }, [currentOrg]);
 
-  // Platform admin with no org selected sees platform overview
-  if (!currentOrg && isPlatformAdmin) {
+  // Platform admin always sees platform overview
+  if (isPlatformAdmin) {
     return <PlatformDashboard />;
   }
 

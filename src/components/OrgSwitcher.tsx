@@ -16,6 +16,16 @@ export function OrgSwitcher() {
 
   if (!currentOrg && !isPlatformAdmin) return null;
 
+  // Platform admin sees static label — no org switching needed
+  if (isPlatformAdmin) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2">
+        <Globe className="h-4 w-4 shrink-0 text-sidebar-primary" />
+        <span className="text-sm font-medium text-sidebar-foreground">Platform Overview</span>
+      </div>
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -25,29 +35,12 @@ export function OrgSwitcher() {
         >
           <Building2 className="h-4 w-4 shrink-0 text-sidebar-primary" />
           <span className="flex-1 truncate text-sm font-medium">
-            {currentOrg?.name ?? "Platform Overview"}
+            {currentOrg?.name ?? "Select Organization"}
           </span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/60" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
-        {isPlatformAdmin && (
-          <>
-            <DropdownMenuItem
-              onClick={() => {
-                // Clear org selection to show platform overview
-                localStorage.removeItem("wa_current_org_id");
-                window.location.reload();
-              }}
-              className="flex items-center gap-2"
-            >
-              <Globe className="h-4 w-4" />
-              <span className="flex-1 truncate">Platform Overview</span>
-              {!currentOrg && <Check className="h-4 w-4 text-primary" />}
-            </DropdownMenuItem>
-            {orgs.length > 0 && <DropdownMenuSeparator />}
-          </>
-        )}
         {orgs.map((m) => (
           <DropdownMenuItem
             key={m.org_id}

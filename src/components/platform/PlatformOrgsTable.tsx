@@ -1,6 +1,4 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { useOrg } from "@/contexts/OrgContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +17,6 @@ export function PlatformOrgsTable({ organizations }: Props) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
-  const { switchOrg } = useOrg();
-  const navigate = useNavigate();
-
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortAsc(!sortAsc);
@@ -50,11 +45,6 @@ export function PlatformOrgsTable({ organizations }: Props) {
 
     return rows;
   }, [organizations, search, sortKey, sortAsc]);
-
-  const handleRowClick = (orgId: string) => {
-    switchOrg(orgId);
-    navigate("/dashboard");
-  };
 
   const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
     <TableHead
@@ -107,11 +97,7 @@ export function PlatformOrgsTable({ organizations }: Props) {
                 </TableRow>
               ) : (
                 filtered.map((org) => (
-                  <TableRow
-                    key={org.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleRowClick(org.id)}
-                  >
+                  <TableRow key={org.id}>
                     <TableCell className="font-medium">{org.name}</TableCell>
                     <TableCell className="text-muted-foreground">{org.industry ?? "—"}</TableCell>
                     <TableCell>{org.members}</TableCell>

@@ -21,11 +21,12 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // Platform admins can use the app without creating an org
-  if (!currentOrg && !isPlatformAdmin) return <Navigate to="/create-org" replace />;
+  // Platform admins go straight to their dashboard — no org needed
+  if (isPlatformAdmin) return <>{children}</>;
 
-  // Skip onboarding check for platform admins without an org
-  if (currentOrg && !currentOrg.onboarding_completed && !isPlatformAdmin) return <Navigate to="/onboarding" replace />;
+  if (!currentOrg) return <Navigate to="/create-org" replace />;
+
+  if (!currentOrg.onboarding_completed) return <Navigate to="/onboarding" replace />;
 
   // Check role requirement
   if (requireRole === "admin" && orgRole !== "admin" && !isPlatformAdmin) {
