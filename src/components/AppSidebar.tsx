@@ -13,6 +13,7 @@ import {
   Settings,
   ShieldCheck,
   Building2,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ export function AppSidebar() {
     ...(hasOrg ? [
       { to: "/contacts", icon: Users, label: "Contacts" },
       { to: "/campaigns", icon: Megaphone, label: "Campaigns" },
+      { to: "/templates", icon: FileText, label: "Templates" },
       { to: "/communications", icon: MessageSquare, label: "Communications" },
       { to: "/reports", icon: BarChart3, label: "Reports" },
       { to: "/settings", icon: Settings, label: "Settings" },

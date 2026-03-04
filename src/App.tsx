@@ -15,6 +15,7 @@ import Index from "./pages/Index";
 import Contacts from "./pages/Contacts";
 import Campaigns from "./pages/Campaigns";
 import CampaignDetail from "./pages/CampaignDetail";
+import Templates from "./pages/Templates";
 import Communications from "./pages/Communications";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
               <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
               <Route path="/campaigns/:id" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
+              <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
               <Route path="/communications" element={<ProtectedRoute><Communications /></ProtectedRoute>} />
               <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
