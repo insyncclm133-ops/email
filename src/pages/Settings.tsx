@@ -684,7 +684,7 @@ export default function Settings() {
                   <SettingsIcon className="h-4 w-4" /> Secure Storage
                 </h4>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Your Exotel API Key, Token, and WABA ID are stored securely in Lovable Cloud secrets and are only accessed by backend functions.
+                  Your Exotel API Key, Token, and WABA ID are stored securely in Supabase Edge Function secrets and are only accessed by backend functions.
                 </p>
               </div>
 

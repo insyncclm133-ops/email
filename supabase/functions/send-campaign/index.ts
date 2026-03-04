@@ -88,6 +88,9 @@ serve(async (req) => {
     const apiToken = Deno.env.get("EXOTEL_API_TOKEN")!;
     const subdomain = Deno.env.get("EXOTEL_SUBDOMAIN")!;
     const senderNumber = Deno.env.get("EXOTEL_SENDER_NUMBER")!;
+    const accountSid = Deno.env.get("EXOTEL_ACCOUNT_SID")!;
+
+    const exotelUrl = `https://${apiKey}:${apiToken}@${subdomain}/v2/accounts/${accountSid}/messages`;
 
     let successCount = 0;
     let failCount = 0;
@@ -111,32 +114,46 @@ serve(async (req) => {
         .single();
 
       try {
-        // Send via Exotel WhatsApp API
-        const exotelUrl = `https://${subdomain}/v2/accounts/${apiKey}/messages`;
-        const body = {
-          From: senderNumber,
-          To: contact.phone_number,
-          Body: message,
-          ...(campaign.media_url ? { MediaUrl: campaign.media_url } : {}),
+        // Build Exotel WhatsApp API payload
+        const content: Record<string, unknown> = campaign.media_url
+          ? {
+              recipient_type: "individual",
+              type: "image",
+              image: { link: campaign.media_url, caption: message },
+            }
+          : {
+              recipient_type: "individual",
+              type: "text",
+              text: { preview_url: false, body: message },
+            };
+
+        const payload = {
+          whatsapp: {
+            messages: [
+              {
+                from: senderNumber,
+                to: contact.phone_number,
+                content,
+              },
+            ],
+          },
         };
 
         const exotelResponse = await fetch(exotelUrl, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Basic ${btoa(`${apiKey}:${apiToken}`)}`,
-          },
-          body: JSON.stringify(body),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
         });
 
         const result = await exotelResponse.json();
+        const msgData = result?.response?.whatsapp?.messages?.[0];
 
-        if (exotelResponse.ok) {
+        if (exotelResponse.ok && msgData?.status === "success") {
           await supabase
             .from("messages")
             .update({
               status: "sent",
-              exotel_message_id: result?.sid || result?.Sid || null,
+              exotel_message_id: msgData?.data?.sid || null,
               sent_at: new Date().toISOString(),
             })
             .eq("id", msgRecord!.id);
