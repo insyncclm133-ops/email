@@ -20,19 +20,22 @@ import { Button } from "@/components/ui/button";
 export function AppSidebar() {
   const location = useLocation();
   const { signOut, user } = useAuth();
-  const { orgRole, isSuperAdmin } = useOrg();
+  const { currentOrg, orgRole, isPlatformAdmin } = useOrg();
 
-  const isAdmin = orgRole === "admin" || isSuperAdmin;
+  const isAdmin = orgRole === "admin" || isPlatformAdmin;
+  const hasOrg = !!currentOrg;
 
   const navItems = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/contacts", icon: Users, label: "Contacts" },
-    { to: "/campaigns", icon: Megaphone, label: "Campaigns" },
-    { to: "/communications", icon: MessageSquare, label: "Communications" },
-    { to: "/reports", icon: BarChart3, label: "Reports" },
-    { to: "/settings", icon: Settings, label: "Settings" },
-    ...(isAdmin ? [{ to: "/users", icon: ShieldCheck, label: "User Management" }] : []),
-    ...(isAdmin ? [{ to: "/org-settings", icon: Building2, label: "Org Settings" }] : []),
+    ...(hasOrg ? [
+      { to: "/contacts", icon: Users, label: "Contacts" },
+      { to: "/campaigns", icon: Megaphone, label: "Campaigns" },
+      { to: "/communications", icon: MessageSquare, label: "Communications" },
+      { to: "/reports", icon: BarChart3, label: "Reports" },
+      { to: "/settings", icon: Settings, label: "Settings" },
+    ] : []),
+    ...(isAdmin && hasOrg ? [{ to: "/users", icon: ShieldCheck, label: "User Management" }] : []),
+    ...(isAdmin && hasOrg ? [{ to: "/org-settings", icon: Building2, label: "Org Settings" }] : []),
   ];
 
   return (

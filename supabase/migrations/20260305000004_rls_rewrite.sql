@@ -67,42 +67,42 @@ $$;
 -- ══════════════════════════════════════════════
 
 -- campaigns
-DO $$ BEGIN
+DO $$ DECLARE r RECORD; BEGIN
   FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'campaigns') LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON campaigns', r.policyname);
   END LOOP;
 END $$;
 
 -- contacts
-DO $$ BEGIN
+DO $$ DECLARE r RECORD; BEGIN
   FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'contacts') LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON contacts', r.policyname);
   END LOOP;
 END $$;
 
 -- campaign_contacts
-DO $$ BEGIN
+DO $$ DECLARE r RECORD; BEGIN
   FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'campaign_contacts') LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON campaign_contacts', r.policyname);
   END LOOP;
 END $$;
 
 -- messages
-DO $$ BEGIN
+DO $$ DECLARE r RECORD; BEGIN
   FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'messages') LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON messages', r.policyname);
   END LOOP;
 END $$;
 
 -- templates
-DO $$ BEGIN
+DO $$ DECLARE r RECORD; BEGIN
   FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'templates') LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON templates', r.policyname);
   END LOOP;
 END $$;
 
 -- user_roles
-DO $$ BEGIN
+DO $$ DECLARE r RECORD; BEGIN
   FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'user_roles') LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON user_roles', r.policyname);
   END LOOP;

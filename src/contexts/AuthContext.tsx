@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  isSuperAdmin: boolean;
+  isPlatformAdmin: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -13,7 +13,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
-  isSuperAdmin: false,
+  isPlatformAdmin: false,
   loading: true,
   signOut: async () => {},
 });
@@ -23,15 +23,15 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkSuperAdmin = async (userId: string) => {
+  const checkPlatformAdmin = async (userId: string) => {
     const { data } = await supabase.rpc("has_role", {
       _user_id: userId,
-      _role: "super_admin",
+      _role: "platform_admin",
     });
-    setIsSuperAdmin(!!data);
+    setIsPlatformAdmin(!!data);
   };
 
   useEffect(() => {
@@ -40,9 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => checkSuperAdmin(session.user.id), 0);
+          setTimeout(() => checkPlatformAdmin(session.user.id), 0);
         } else {
-          setIsSuperAdmin(false);
+          setIsPlatformAdmin(false);
         }
         setLoading(false);
       }
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        checkSuperAdmin(session.user.id);
+        checkPlatformAdmin(session.user.id);
       }
       setLoading(false);
     });
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, isSuperAdmin, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, isPlatformAdmin, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

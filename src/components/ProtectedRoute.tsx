@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
   const { user, loading: authLoading } = useAuth();
-  const { currentOrg, orgRole, isSuperAdmin, loading: orgLoading } = useOrg();
+  const { currentOrg, orgRole, isPlatformAdmin, loading: orgLoading } = useOrg();
 
   if (authLoading || orgLoading) {
     return (
@@ -21,14 +21,14 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // If user has no org, send them to create one
-  if (!currentOrg) return <Navigate to="/create-org" replace />;
+  // Platform admins can use the app without creating an org
+  if (!currentOrg && !isPlatformAdmin) return <Navigate to="/create-org" replace />;
 
-  // If onboarding not completed, redirect to onboarding
-  if (!currentOrg.onboarding_completed) return <Navigate to="/onboarding" replace />;
+  // Skip onboarding check for platform admins without an org
+  if (currentOrg && !currentOrg.onboarding_completed && !isPlatformAdmin) return <Navigate to="/onboarding" replace />;
 
   // Check role requirement
-  if (requireRole === "admin" && orgRole !== "admin" && !isSuperAdmin) {
+  if (requireRole === "admin" && orgRole !== "admin" && !isPlatformAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">

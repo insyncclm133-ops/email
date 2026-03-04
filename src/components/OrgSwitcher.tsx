@@ -8,13 +8,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Building2, ChevronDown, Plus, Check } from "lucide-react";
+import { Building2, ChevronDown, Plus, Check, Globe } from "lucide-react";
 
 export function OrgSwitcher() {
-  const { currentOrg, orgs, switchOrg } = useOrg();
+  const { currentOrg, orgs, isPlatformAdmin, switchOrg } = useOrg();
   const navigate = useNavigate();
 
-  if (!currentOrg) return null;
+  if (!currentOrg && !isPlatformAdmin) return null;
 
   return (
     <DropdownMenu>
@@ -25,12 +25,29 @@ export function OrgSwitcher() {
         >
           <Building2 className="h-4 w-4 shrink-0 text-sidebar-primary" />
           <span className="flex-1 truncate text-sm font-medium">
-            {currentOrg.name}
+            {currentOrg?.name ?? "Platform Overview"}
           </span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/60" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
+        {isPlatformAdmin && (
+          <>
+            <DropdownMenuItem
+              onClick={() => {
+                // Clear org selection to show platform overview
+                localStorage.removeItem("wa_current_org_id");
+                window.location.reload();
+              }}
+              className="flex items-center gap-2"
+            >
+              <Globe className="h-4 w-4" />
+              <span className="flex-1 truncate">Platform Overview</span>
+              {!currentOrg && <Check className="h-4 w-4 text-primary" />}
+            </DropdownMenuItem>
+            {orgs.length > 0 && <DropdownMenuSeparator />}
+          </>
+        )}
         {orgs.map((m) => (
           <DropdownMenuItem
             key={m.org_id}
@@ -39,7 +56,7 @@ export function OrgSwitcher() {
           >
             <Building2 className="h-4 w-4" />
             <span className="flex-1 truncate">{m.organization.name}</span>
-            {m.org_id === currentOrg.id && <Check className="h-4 w-4 text-primary" />}
+            {currentOrg && m.org_id === currentOrg.id && <Check className="h-4 w-4 text-primary" />}
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />

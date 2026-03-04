@@ -23,7 +23,7 @@ interface OrgContextType {
   currentOrg: Organization | null;
   orgs: OrgMembership[];
   orgRole: "admin" | "member" | null;
-  isSuperAdmin: boolean;
+  isPlatformAdmin: boolean;
   loading: boolean;
   switchOrg: (orgId: string) => void;
   refreshOrgs: () => Promise<void>;
@@ -33,7 +33,7 @@ const OrgContext = createContext<OrgContextType>({
   currentOrg: null,
   orgs: [],
   orgRole: null,
-  isSuperAdmin: false,
+  isPlatformAdmin: false,
   loading: true,
   switchOrg: () => {},
   refreshOrgs: async () => {},
@@ -44,7 +44,7 @@ export const useOrg = () => useContext(OrgContext);
 const LS_KEY = "wa_current_org_id";
 
 export function OrgProvider({ children }: { children: ReactNode }) {
-  const { user, isSuperAdmin } = useAuth();
+  const { user, isPlatformAdmin } = useAuth();
   const [orgs, setOrgs] = useState<OrgMembership[]>([]);
   const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
   const [orgRole, setOrgRole] = useState<"admin" | "member" | null>(null);
@@ -79,17 +79,19 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     if (savedMembership) {
       setCurrentOrg(savedMembership.organization);
       setOrgRole(savedMembership.role);
-    } else if (mapped.length > 0) {
+    } else if (mapped.length > 0 && !isPlatformAdmin) {
+      // Auto-select first org for non-platform-admins
       setCurrentOrg(mapped[0].organization);
       setOrgRole(mapped[0].role);
       localStorage.setItem(LS_KEY, mapped[0].org_id);
     } else {
+      // Platform admins stay on platform overview when no org saved
       setCurrentOrg(null);
       setOrgRole(null);
     }
 
     setLoading(false);
-  }, [user]);
+  }, [user, isPlatformAdmin]);
 
   useEffect(() => {
     fetchOrgs();
@@ -110,7 +112,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
         currentOrg,
         orgs,
         orgRole,
-        isSuperAdmin,
+        isPlatformAdmin,
         loading,
         switchOrg,
         refreshOrgs: fetchOrgs,

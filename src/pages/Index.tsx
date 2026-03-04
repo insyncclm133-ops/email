@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Megaphone, MessageSquare, CheckCircle, Clock, XCircle } from "lucide-react";
 import { GamificationDashboardWidgets } from "@/components/gamification/GamificationDashboardWidgets";
+import PlatformDashboard from "@/pages/PlatformDashboard";
 
 interface Stats {
   totalContacts: number;
@@ -16,7 +17,7 @@ interface Stats {
 }
 
 export default function Index() {
-  const { currentOrg } = useOrg();
+  const { currentOrg, isPlatformAdmin } = useOrg();
   const [stats, setStats] = useState<Stats>({
     totalContacts: 0,
     totalCampaigns: 0,
@@ -47,6 +48,11 @@ export default function Index() {
     };
     fetchStats();
   }, [currentOrg]);
+
+  // Platform admin with no org selected sees platform overview
+  if (!currentOrg && isPlatformAdmin) {
+    return <PlatformDashboard />;
+  }
 
   const cards = [
     { title: "Total Contacts", value: stats.totalContacts, icon: Users, color: "text-info" },
