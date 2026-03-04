@@ -99,8 +99,8 @@ export default function Landing() {
               <span className="text-primary">That Convert</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-              Upload your contacts, craft personalized messages, and reach
-              thousands instantly — all from one powerful admin dashboard.
+              Create your organization, invite your team, and reach
+              thousands instantly — all from one powerful multi-tenant dashboard.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button size="lg" className="text-base px-8" asChild>
@@ -171,7 +171,7 @@ export default function Landing() {
               Ready to reach your audience?
             </h2>
             <p className="relative mx-auto mt-4 max-w-xl text-primary-foreground/80">
-              Sign up in seconds, upload your contacts, and launch your first
+              Register your organization in seconds and launch your first
               WhatsApp campaign today.
             </p>
             <div className="relative mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -182,7 +182,7 @@ export default function Landing() {
                 asChild
               >
                 <Link to="/login?signup=true">
-                  Get Started Free <ArrowRight className="ml-2 h-4 w-4" />
+                  Register Your Organization <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>
@@ -191,7 +191,7 @@ export default function Landing() {
                 <CheckCircle className="h-4 w-4" /> No credit card required
               </span>
               <span className="flex items-center gap-1.5">
-                <CheckCircle className="h-4 w-4" /> Admin-only access
+                <CheckCircle className="h-4 w-4" /> Multi-tenant isolation
               </span>
               <span className="flex items-center gap-1.5">
                 <CheckCircle className="h-4 w-4" /> Enterprise-grade security

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/contexts/OrgContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,15 +27,18 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function Communications() {
+  const { currentOrg } = useOrg();
   const [messages, setMessages] = useState<MessageWithRelations[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
 
   const fetchMessages = async () => {
+    if (!currentOrg) return;
     setLoading(true);
     let query = supabase
       .from("messages")
       .select("id, content, status, sent_at, created_at, error_message, campaigns(name), contacts(name, phone_number)")
+      .eq("org_id", currentOrg.id)
       .order("created_at", { ascending: false })
       .limit(200);
 
@@ -47,19 +51,25 @@ export default function Communications() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchMessages(); }, [filter]);
+  useEffect(() => { fetchMessages(); }, [filter, currentOrg]);
 
-  // Realtime subscription
+  // Realtime subscription scoped by org_id
   useEffect(() => {
+    if (!currentOrg) return;
     const channel = supabase
       .channel("messages-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "messages",
+        filter: `org_id=eq.${currentOrg.id}`,
+      }, () => {
         fetchMessages();
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [filter]);
+  }, [filter, currentOrg]);
 
   return (
     <DashboardLayout>

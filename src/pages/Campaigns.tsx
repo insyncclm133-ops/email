@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/contexts/OrgContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const statusColor: Record<string, string> = {
 
 export default function Campaigns() {
   const { user } = useAuth();
+  const { currentOrg } = useOrg();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState<Tables<"campaigns">[]>([]);
@@ -34,28 +36,32 @@ export default function Campaigns() {
   const [form, setForm] = useState({ name: "", description: "", template_id: "", template_message: "" });
 
   const fetchCampaigns = async () => {
+    if (!currentOrg) return;
     setLoading(true);
     const { data } = await supabase
       .from("campaigns")
       .select("*")
+      .eq("org_id", currentOrg.id)
       .order("created_at", { ascending: false });
     setCampaigns(data ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { 
+  useEffect(() => {
+    if (!currentOrg) return;
     const fetchTemplates = async () => {
-      const { data } = await supabase.from("templates").select("*").eq("status", "approved");
+      const { data } = await supabase.from("templates").select("*").eq("status", "approved").eq("org_id", currentOrg.id);
       setTemplates(data || []);
     };
     fetchCampaigns();
     fetchTemplates();
-  }, []);
+  }, [currentOrg]);
 
   const createCampaign = async () => {
-    if (!user || !form.name) return;
+    if (!user || !currentOrg || !form.name) return;
     const { error } = await supabase.from("campaigns").insert({
       user_id: user.id,
+      org_id: currentOrg.id,
       name: form.name,
       description: form.description || null,
       template_id: form.template_id || null,
@@ -72,7 +78,6 @@ export default function Campaigns() {
   };
 
   const launchCampaign = async (id: string) => {
-    // Check if contacts are assigned
     const { count } = await supabase
       .from("campaign_contacts")
       .select("id", { count: "exact", head: true })
@@ -92,7 +97,6 @@ export default function Campaigns() {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } else {
       toast({ title: "Campaign launched!" });
-      // Trigger send via edge function
       supabase.functions.invoke("send-campaign", { body: { campaign_id: id } });
       fetchCampaigns();
     }
@@ -122,8 +126,8 @@ export default function Campaigns() {
               </div>
               <div>
                 <Label>WhatsApp Template</Label>
-                <Select 
-                  value={form.template_id} 
+                <Select
+                  value={form.template_id}
                   onValueChange={(id) => {
                     const t = templates.find(x => x.id === id);
                     setForm({ ...form, template_id: id, template_message: t?.content || "" });

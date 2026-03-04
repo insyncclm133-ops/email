@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/contexts/OrgContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Megaphone, MessageSquare, CheckCircle, Clock, XCircle } from "lucide-react";
+import { GamificationDashboardWidgets } from "@/components/gamification/GamificationDashboardWidgets";
 
 interface Stats {
   totalContacts: number;
@@ -14,6 +16,7 @@ interface Stats {
 }
 
 export default function Index() {
+  const { currentOrg } = useOrg();
   const [stats, setStats] = useState<Stats>({
     totalContacts: 0,
     totalCampaigns: 0,
@@ -24,11 +27,12 @@ export default function Index() {
   });
 
   useEffect(() => {
+    if (!currentOrg) return;
     const fetchStats = async () => {
       const [contacts, campaigns, messages] = await Promise.all([
-        supabase.from("contacts").select("id", { count: "exact", head: true }),
-        supabase.from("campaigns").select("id", { count: "exact", head: true }),
-        supabase.from("messages").select("id, status"),
+        supabase.from("contacts").select("id", { count: "exact", head: true }).eq("org_id", currentOrg.id),
+        supabase.from("campaigns").select("id", { count: "exact", head: true }).eq("org_id", currentOrg.id),
+        supabase.from("messages").select("id, status").eq("org_id", currentOrg.id),
       ]);
 
       const msgs = messages.data || [];
@@ -42,7 +46,7 @@ export default function Index() {
       });
     };
     fetchStats();
-  }, []);
+  }, [currentOrg]);
 
   const cards = [
     { title: "Total Contacts", value: stats.totalContacts, icon: Users, color: "text-info" },
@@ -73,6 +77,9 @@ export default function Index() {
           </Card>
         ))}
       </div>
+
+      {/* Gamification widgets */}
+      <GamificationDashboardWidgets stats={stats} />
     </DashboardLayout>
   );
 }

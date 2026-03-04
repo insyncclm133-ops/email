@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/contexts/OrgContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -162,6 +163,7 @@ function WhatsAppPreview({
 
 export default function Settings() {
   const { user } = useAuth();
+  const { currentOrg } = useOrg();
   const { toast } = useToast();
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,10 +180,12 @@ export default function Settings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchTemplates = async () => {
+    if (!currentOrg) return;
     setLoading(true);
     const { data, error } = await supabase
       .from("templates")
       .select("*")
+      .eq("org_id", currentOrg.id)
       .order("created_at", { ascending: false });
     if (error) {
       toast({ variant: "destructive", title: "Error fetching templates", description: error.message });
@@ -191,7 +195,7 @@ export default function Settings() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchTemplates(); }, []);
+  useEffect(() => { fetchTemplates(); }, [currentOrg]);
 
   // Clear media when header type changes
   useEffect(() => {
@@ -241,7 +245,7 @@ export default function Settings() {
     setUploadingMedia(true);
     try {
       const ext = mediaFile.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}.${ext}`;
+      const path = `${currentOrg?.id ?? "default"}/${user.id}/${Date.now()}.${ext}`;
       const { error } = await supabase.storage.from("template-media").upload(path, mediaFile);
       if (error) throw error;
       const { data: urlData } = supabase.storage.from("template-media").getPublicUrl(path);
@@ -315,6 +319,7 @@ export default function Settings() {
       const { data, error } = await supabase.functions.invoke("manage-templates", {
         body: {
           action: "submit",
+          org_id: currentOrg!.id,
           name: form.name,
           category: form.category,
           language: form.language,
@@ -342,7 +347,7 @@ export default function Settings() {
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke("manage-templates", {
-        body: { action: "sync" },
+        body: { action: "sync", org_id: currentOrg!.id },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -358,7 +363,7 @@ export default function Settings() {
   const deleteTemplate = async (id: string, name: string) => {
     try {
       const { data, error } = await supabase.functions.invoke("manage-templates", {
-        body: { action: "delete", template_id: id, template_name: name },
+        body: { action: "delete", org_id: currentOrg!.id, template_id: id, template_name: name },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

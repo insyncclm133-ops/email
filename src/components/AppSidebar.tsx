@@ -1,5 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/contexts/OrgContext";
+import { OrgSwitcher } from "@/components/OrgSwitcher";
 import {
   LayoutDashboard,
   Users,
@@ -10,23 +12,28 @@ import {
   MessageCircle,
   Settings,
   ShieldCheck,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/contacts", icon: Users, label: "Contacts" },
-  { to: "/campaigns", icon: Megaphone, label: "Campaigns" },
-  { to: "/communications", icon: MessageSquare, label: "Communications" },
-  { to: "/reports", icon: BarChart3, label: "Reports" },
-  { to: "/settings", icon: Settings, label: "Settings" },
-  { to: "/users", icon: ShieldCheck, label: "User Management" },
-];
-
 export function AppSidebar() {
   const location = useLocation();
   const { signOut, user } = useAuth();
+  const { orgRole, isSuperAdmin } = useOrg();
+
+  const isAdmin = orgRole === "admin" || isSuperAdmin;
+
+  const navItems = [
+    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/contacts", icon: Users, label: "Contacts" },
+    { to: "/campaigns", icon: Megaphone, label: "Campaigns" },
+    { to: "/communications", icon: MessageSquare, label: "Communications" },
+    { to: "/reports", icon: BarChart3, label: "Reports" },
+    { to: "/settings", icon: Settings, label: "Settings" },
+    ...(isAdmin ? [{ to: "/users", icon: ShieldCheck, label: "User Management" }] : []),
+    ...(isAdmin ? [{ to: "/org-settings", icon: Building2, label: "Org Settings" }] : []),
+  ];
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground">
@@ -36,6 +43,11 @@ export function AppSidebar() {
         <span className="text-lg font-bold tracking-tight text-sidebar-primary-foreground">
           WhatsApp Hub
         </span>
+      </div>
+
+      {/* Org Switcher */}
+      <div className="border-b border-sidebar-border px-3 py-2">
+        <OrgSwitcher />
       </div>
 
       {/* Navigation */}

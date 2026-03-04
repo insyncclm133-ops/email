@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getExotelCreds } from "../_shared/get-exotel-creds.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,16 +34,20 @@ serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get("EXOTEL_API_KEY")!;
-    const apiToken = Deno.env.get("EXOTEL_API_TOKEN")!;
-    const subdomain = Deno.env.get("EXOTEL_SUBDOMAIN")!;
-    const wabaId = Deno.env.get("EXOTEL_WABA_ID")!;
-    const accountSid = Deno.env.get("EXOTEL_ACCOUNT_SID")!;
-    const exotelAuth = `Basic ${btoa(`${apiKey}:${apiToken}`)}`;
-    const baseUrl = `https://${subdomain}/v2/accounts/${accountSid}/templates`;
-
     const body = await req.json();
-    const { action } = body;
+    const { action, org_id } = body;
+
+    if (!org_id) {
+      return new Response(JSON.stringify({ error: "org_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Resolve Exotel credentials for this org
+    const creds = await getExotelCreds(supabase, org_id);
+    const exotelAuth = `Basic ${btoa(`${creds.apiKey}:${creds.apiToken}`)}`;
+    const baseUrl = `https://${creds.subdomain}/v2/accounts/${creds.accountSid}/templates`;
 
     // ── SUBMIT ──
     if (action === "submit") {
@@ -57,10 +62,10 @@ serve(async (req) => {
           templates: [{ template: { name: sanitizedName, category, language, components } }],
         },
       };
-      console.log("Exotel request URL:", `${baseUrl}?waba_id=${wabaId}`);
+      console.log("Exotel request URL:", `${baseUrl}?waba_id=${creds.wabaId}`);
       console.log("Exotel payload:", JSON.stringify(exotelPayload, null, 2));
 
-      const exotelRes = await fetch(`${baseUrl}?waba_id=${wabaId}`, {
+      const exotelRes = await fetch(`${baseUrl}?waba_id=${creds.wabaId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -94,11 +99,12 @@ serve(async (req) => {
         contentText = headerComp.text + "\n\n" + contentText;
       }
 
-      // Save to DB as pending
+      // Save to DB as pending, scoped to org
       const { data: inserted, error: dbError } = await supabase
         .from("templates")
         .insert({
           user_id: user.id,
+          org_id,
           name,
           content: contentText,
           category,
@@ -123,7 +129,7 @@ serve(async (req) => {
 
     // ── SYNC ──
     if (action === "sync") {
-      const exotelRes = await fetch(`${baseUrl}?waba_id=${wabaId}`, {
+      const exotelRes = await fetch(`${baseUrl}?waba_id=${creds.wabaId}`, {
         method: "GET",
         headers: { Authorization: exotelAuth },
       });
@@ -140,10 +146,11 @@ serve(async (req) => {
       const exotelTemplates = exotelData?.data || exotelData?.templates || exotelData || [];
       let updatedCount = 0;
 
+      // Scope DB query to org
       const { data: dbTemplates } = await supabase
         .from("templates")
         .select("id, name, exotel_template_id, status")
-        .eq("user_id", user.id);
+        .eq("org_id", org_id);
 
       for (const dbTpl of (dbTemplates || [])) {
         const match = Array.isArray(exotelTemplates)
@@ -174,7 +181,7 @@ serve(async (req) => {
     if (action === "delete") {
       const { template_id, template_name } = body;
 
-      const exotelRes = await fetch(`${baseUrl}?waba_id=${wabaId}&name=${encodeURIComponent(template_name)}`, {
+      const exotelRes = await fetch(`${baseUrl}?waba_id=${creds.wabaId}&name=${encodeURIComponent(template_name)}`, {
         method: "DELETE",
         headers: { Authorization: exotelAuth },
       });

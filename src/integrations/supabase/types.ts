@@ -14,24 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievement_definitions: {
+        Row: {
+          id: string
+          name: string
+          description: string
+          icon: string
+          category: string
+          threshold: number
+          sort_order: number
+        }
+        Insert: {
+          id: string
+          name: string
+          description: string
+          icon: string
+          category: string
+          threshold?: number
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string
+          icon?: string
+          category?: string
+          threshold?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
       campaign_contacts: {
         Row: {
           campaign_id: string
           contact_id: string
           created_at: string
           id: string
+          org_id: string
         }
         Insert: {
           campaign_id: string
           contact_id: string
           created_at?: string
           id?: string
+          org_id: string
         }
         Update: {
           campaign_id?: string
           contact_id?: string
           created_at?: string
           id?: string
+          org_id?: string
         }
         Relationships: [
           {
@@ -48,6 +81,13 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "campaign_contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       campaigns: {
@@ -57,6 +97,7 @@ export type Database = {
           id: string
           media_url: string | null
           name: string
+          org_id: string
           scheduled_at: string | null
           status: string
           template_id: string | null
@@ -70,6 +111,7 @@ export type Database = {
           id?: string
           media_url?: string | null
           name: string
+          org_id: string
           scheduled_at?: string | null
           status?: string
           template_id?: string | null
@@ -83,6 +125,7 @@ export type Database = {
           id?: string
           media_url?: string | null
           name?: string
+          org_id?: string
           scheduled_at?: string | null
           status?: string
           template_id?: string | null
@@ -98,6 +141,13 @@ export type Database = {
             referencedRelation: "templates"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contacts: {
@@ -106,6 +156,7 @@ export type Database = {
           email: string | null
           id: string
           name: string | null
+          org_id: string
           phone_number: string
           source: string | null
           tags: string[] | null
@@ -117,6 +168,7 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string | null
+          org_id: string
           phone_number: string
           source?: string | null
           tags?: string[] | null
@@ -128,13 +180,22 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string | null
+          org_id?: string
           phone_number?: string
           source?: string | null
           tags?: string[] | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
@@ -147,6 +208,7 @@ export type Database = {
           exotel_message_id: string | null
           id: string
           media_url: string | null
+          org_id: string
           read_at: string | null
           sent_at: string | null
           status: string
@@ -162,6 +224,7 @@ export type Database = {
           exotel_message_id?: string | null
           id?: string
           media_url?: string | null
+          org_id: string
           read_at?: string | null
           sent_at?: string | null
           status?: string
@@ -177,6 +240,7 @@ export type Database = {
           exotel_message_id?: string | null
           id?: string
           media_url?: string | null
+          org_id?: string
           read_at?: string | null
           sent_at?: string | null
           status?: string
@@ -197,7 +261,171 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      org_achievements: {
+        Row: {
+          id: string
+          org_id: string
+          achievement_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          achievement_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          achievement_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_achievements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievement_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_credentials: {
+        Row: {
+          id: string
+          org_id: string
+          exotel_api_key: string | null
+          exotel_api_token: string | null
+          exotel_subdomain: string | null
+          exotel_waba_id: string | null
+          exotel_account_sid: string | null
+          exotel_sender_number: string | null
+          is_configured: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          exotel_api_key?: string | null
+          exotel_api_token?: string | null
+          exotel_subdomain?: string | null
+          exotel_waba_id?: string | null
+          exotel_account_sid?: string | null
+          exotel_sender_number?: string | null
+          is_configured?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          exotel_api_key?: string | null
+          exotel_api_token?: string | null
+          exotel_subdomain?: string | null
+          exotel_waba_id?: string | null
+          exotel_account_sid?: string | null
+          exotel_sender_number?: string | null
+          is_configured?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_memberships: {
+        Row: {
+          id: string
+          org_id: string
+          user_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          user_id: string
+          role?: Database["public"]["Enums"]["org_role"]
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          user_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          logo_url: string | null
+          website: string | null
+          industry: string | null
+          created_by: string | null
+          onboarding_completed: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          logo_url?: string | null
+          website?: string | null
+          industry?: string | null
+          created_by?: string | null
+          onboarding_completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          logo_url?: string | null
+          website?: string | null
+          industry?: string | null
+          created_by?: string | null
+          onboarding_completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       templates: {
         Row: {
@@ -208,6 +436,7 @@ export type Database = {
           id: string
           language: string | null
           name: string
+          org_id: string
           status: string | null
           updated_at: string
           user_id: string
@@ -220,6 +449,7 @@ export type Database = {
           id?: string
           language?: string | null
           name: string
+          org_id: string
           status?: string | null
           updated_at?: string
           user_id: string
@@ -232,11 +462,20 @@ export type Database = {
           id?: string
           language?: string | null
           name?: string
+          org_id?: string
           status?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -268,9 +507,37 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: {
+        Args: {
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_org_member: {
+        Args: {
+          _user_id: string
+          _org_id: string
+        }
+        Returns: boolean
+      }
+      has_org_role: {
+        Args: {
+          _user_id: string
+          _org_id: string
+          _role: Database["public"]["Enums"]["org_role"]
+        }
+        Returns: boolean
+      }
+      get_user_org_ids: {
+        Args: {
+          _user_id: string
+        }
+        Returns: string[]
+      }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "super_admin"
+      org_role: "admin" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -398,7 +665,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "super_admin"],
+      org_role: ["admin", "member"],
     },
   },
 } as const

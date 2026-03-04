@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getExotelCreds } from "../_shared/get-exotel-creds.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,6 +66,9 @@ serve(async (req) => {
       });
     }
 
+    // Extract org_id from campaign record
+    const orgId = campaign.org_id;
+
     // Get assigned contacts
     const { data: assignments } = await supabase
       .from("campaign_contacts")
@@ -83,14 +87,9 @@ serve(async (req) => {
       });
     }
 
-    // Exotel credentials
-    const apiKey = Deno.env.get("EXOTEL_API_KEY")!;
-    const apiToken = Deno.env.get("EXOTEL_API_TOKEN")!;
-    const subdomain = Deno.env.get("EXOTEL_SUBDOMAIN")!;
-    const senderNumber = Deno.env.get("EXOTEL_SENDER_NUMBER")!;
-    const accountSid = Deno.env.get("EXOTEL_ACCOUNT_SID")!;
-
-    const exotelUrl = `https://${apiKey}:${apiToken}@${subdomain}/v2/accounts/${accountSid}/messages`;
+    // Resolve Exotel credentials (per-org or platform defaults)
+    const creds = await getExotelCreds(supabase, orgId);
+    const exotelUrl = `https://${creds.apiKey}:${creds.apiToken}@${creds.subdomain}/v2/accounts/${creds.accountSid}/messages`;
 
     let successCount = 0;
     let failCount = 0;
@@ -100,7 +99,7 @@ serve(async (req) => {
       const message = (campaign.template_message || "")
         .replace(/\{\{name\}\}/g, contact.name || "Customer");
 
-      // Create message record
+      // Create message record with org_id
       const { data: msgRecord } = await supabase
         .from("messages")
         .insert({
@@ -109,6 +108,7 @@ serve(async (req) => {
           content: message,
           media_url: campaign.media_url,
           status: "pending",
+          org_id: orgId,
         })
         .select("id")
         .single();
@@ -131,7 +131,7 @@ serve(async (req) => {
           whatsapp: {
             messages: [
               {
-                from: senderNumber,
+                from: creds.senderNumber,
                 to: contact.phone_number,
                 content,
               },

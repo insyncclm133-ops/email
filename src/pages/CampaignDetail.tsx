@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/contexts/OrgContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
+  const { currentOrg } = useOrg();
   const { toast } = useToast();
   const [campaign, setCampaign] = useState<Tables<"campaigns"> | null>(null);
   const [allContacts, setAllContacts] = useState<Tables<"contacts">[]>([]);
@@ -21,13 +23,13 @@ export default function CampaignDetail() {
   const [messages, setMessages] = useState<(Tables<"messages"> & { contacts: { name: string | null; phone_number: string } | null })[]>([]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !currentOrg) return;
     const load = async () => {
       const [campRes, contactsRes, assignedRes, msgsRes] = await Promise.all([
-        supabase.from("campaigns").select("*").eq("id", id).maybeSingle(),
-        supabase.from("contacts").select("*"),
+        supabase.from("campaigns").select("*").eq("id", id).eq("org_id", currentOrg.id).maybeSingle(),
+        supabase.from("contacts").select("*").eq("org_id", currentOrg.id),
         supabase.from("campaign_contacts").select("contact_id").eq("campaign_id", id),
-        supabase.from("messages").select("*, contacts(name, phone_number)").eq("campaign_id", id).order("created_at", { ascending: false }),
+        supabase.from("messages").select("*, contacts(name, phone_number)").eq("campaign_id", id).eq("org_id", currentOrg.id).order("created_at", { ascending: false }),
       ]);
       setCampaign(campRes.data);
       setAllContacts(contactsRes.data ?? []);
@@ -37,7 +39,7 @@ export default function CampaignDetail() {
       setMessages((msgsRes.data as any) ?? []);
     };
     load();
-  }, [id]);
+  }, [id, currentOrg]);
 
   const toggleContact = (contactId: string) => {
     setSelectedIds((prev) => {
@@ -49,8 +51,7 @@ export default function CampaignDetail() {
   };
 
   const saveAssignments = async () => {
-    if (!id) return;
-    // Remove unselected
+    if (!id || !currentOrg) return;
     const toRemove = [...assignedIds].filter((cid) => !selectedIds.has(cid));
     const toAdd = [...selectedIds].filter((cid) => !assignedIds.has(cid));
 
@@ -59,7 +60,7 @@ export default function CampaignDetail() {
     }
     if (toAdd.length > 0) {
       await supabase.from("campaign_contacts").insert(
-        toAdd.map((contact_id) => ({ campaign_id: id, contact_id }))
+        toAdd.map((contact_id) => ({ campaign_id: id, contact_id, org_id: currentOrg.id }))
       );
     }
 
@@ -86,7 +87,6 @@ export default function CampaignDetail() {
         </Card>
       )}
 
-      {/* Assign contacts */}
       {campaign.status === "draft" && (
         <Card className="mb-6">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -111,7 +111,6 @@ export default function CampaignDetail() {
         </Card>
       )}
 
-      {/* Message log */}
       <Card>
         <CardHeader><CardTitle className="text-sm">Message Log</CardTitle></CardHeader>
         <CardContent>

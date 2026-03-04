@@ -37,11 +37,21 @@ export default function Login() {
         toast({ title: "Check your email", description: "We've sent you a confirmation link." });
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         toast({ variant: "destructive", title: "Login failed", description: error.message });
       } else {
-        navigate("/dashboard");
+        // Check if user has any org memberships
+        const { data: memberships } = await supabase
+          .from("org_memberships")
+          .select("org_id")
+          .eq("user_id", signInData.user.id)
+          .limit(1);
+        if (!memberships || memberships.length === 0) {
+          navigate("/create-org");
+        } else {
+          navigate("/dashboard");
+        }
       }
     }
     setLoading(false);

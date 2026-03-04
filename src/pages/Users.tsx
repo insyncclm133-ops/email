@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/contexts/OrgContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,27 +24,25 @@ interface ManagedUser {
   last_sign_in_at: string | null;
 }
 
-const ROLES = ["admin", "super_admin", "member"];
+const ORG_ROLES = ["admin", "member"];
 
 function roleBadgeVariant(role: string): "default" | "secondary" | "outline" {
-  if (role === "super_admin") return "default";
-  if (role === "admin") return "secondary";
+  if (role === "admin") return "default";
   return "outline";
 }
 
 export default function Users() {
-  const { session, user } = useAuth();
+  const { user } = useAuth();
+  const { currentOrg } = useOrg();
   const { toast } = useToast();
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Add user dialog
   const [addOpen, setAddOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", password: "", role: "member" });
   const [addLoading, setAddLoading] = useState(false);
 
-  // Edit role dialog
   const [editOpen, setEditOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ManagedUser | null>(null);
   const [editRole, setEditRole] = useState("");
@@ -52,7 +51,7 @@ export default function Users() {
   const callManageUsers = async (body: Record<string, unknown>) => {
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     const res = await supabase.functions.invoke("manage-users", {
-      body,
+      body: { ...body, org_id: currentOrg!.id },
       headers: { Authorization: `Bearer ${currentSession?.access_token}` },
     });
     if (res.error) throw new Error(res.error.message);
@@ -61,6 +60,7 @@ export default function Users() {
   };
 
   const fetchUsers = async () => {
+    if (!currentOrg) return;
     setLoading(true);
     try {
       const data = await callManageUsers({ action: "list" });
@@ -71,7 +71,7 @@ export default function Users() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => { fetchUsers(); }, [currentOrg]);
 
   const addUser = async () => {
     if (!newUser.email || !newUser.password || !newUser.role) return;
@@ -106,7 +106,7 @@ export default function Users() {
   const deleteUser = async (targetId: string) => {
     try {
       await callManageUsers({ action: "delete", user_id: targetId });
-      toast({ title: "User deleted" });
+      toast({ title: "User removed" });
       fetchUsers();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
@@ -133,7 +133,7 @@ export default function Users() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">User Management</h1>
-          <p className="text-muted-foreground">Invite users, assign roles, and manage access</p>
+          <p className="text-muted-foreground">Manage team members for {currentOrg?.name}</p>
         </div>
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
@@ -161,7 +161,7 @@ export default function Users() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {ROLES.map((r) => (
+                    {ORG_ROLES.map((r) => (
                       <SelectItem key={r} value={r}>{r}</SelectItem>
                     ))}
                   </SelectContent>
@@ -175,7 +175,6 @@ export default function Users() {
         </Dialog>
       </div>
 
-      {/* Edit Role Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
@@ -190,7 +189,7 @@ export default function Users() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLES.map((r) => (
+                  {ORG_ROLES.map((r) => (
                     <SelectItem key={r} value={r}>{r}</SelectItem>
                   ))}
                 </SelectContent>
@@ -251,20 +250,20 @@ export default function Users() {
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" disabled={isSelf} title={isSelf ? "Cannot delete yourself" : "Delete user"}>
+                              <Button variant="ghost" size="icon" disabled={isSelf} title={isSelf ? "Cannot remove yourself" : "Remove user"}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                <AlertDialogTitle>Remove User</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete <strong>{u.email}</strong>? This action cannot be undone.
+                                  Are you sure you want to remove <strong>{u.email}</strong> from this organization?
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteUser(u.id)}>Delete</AlertDialogAction>
+                                <AlertDialogAction onClick={() => deleteUser(u.id)}>Remove</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>

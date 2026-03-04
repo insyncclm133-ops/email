@@ -33,49 +33,66 @@ serve(async (req) => {
       });
     }
 
-    // Check caller is admin
-    const { data: isAdmin } = await supabase.rpc("has_role", {
-      _user_id: user.id,
-      _role: "admin",
-    });
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden: admin role required" }), {
+    const body = await req.json();
+    const { action, org_id } = body;
+
+    if (!org_id) {
+      return new Response(JSON.stringify({ error: "org_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check caller is admin of this org (or super_admin)
+    const { data: callerMembership } = await supabase
+      .from("org_memberships")
+      .select("role")
+      .eq("org_id", org_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const { data: isSuperAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "super_admin" });
+
+    if (!isSuperAdmin && callerMembership?.role !== "admin") {
+      return new Response(JSON.stringify({ error: "Forbidden: org admin role required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const body = await req.json();
-    const { action } = body;
-
     // ── LIST ──
     if (action === "list") {
-      const { data: { users: authUsers }, error: listError } = await supabase.auth.admin.listUsers();
-      if (listError) {
-        return new Response(JSON.stringify({ error: "Failed to list users", details: listError.message }), {
-          status: 500,
+      // Get org memberships
+      const { data: memberships } = await supabase
+        .from("org_memberships")
+        .select("user_id, role")
+        .eq("org_id", org_id);
+
+      if (!memberships || memberships.length === 0) {
+        return new Response(JSON.stringify({ success: true, users: [] }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Fetch all roles
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("user_id, role");
+      // Fetch auth user details for each member
+      const userIds = memberships.map(m => m.user_id);
+      const { data: { users: authUsers } } = await supabase.auth.admin.listUsers();
 
       const roleMap: Record<string, string> = {};
-      for (const r of (roles || [])) {
-        roleMap[r.user_id] = r.role;
+      for (const m of memberships) {
+        roleMap[m.user_id] = m.role;
       }
 
-      const users = (authUsers || []).map((u: any) => ({
-        id: u.id,
-        email: u.email,
-        role: roleMap[u.id] || "none",
-        created_at: u.created_at,
-        email_confirmed_at: u.email_confirmed_at,
-        last_sign_in_at: u.last_sign_in_at,
-      }));
+      const users = (authUsers || [])
+        .filter((u: any) => userIds.includes(u.id))
+        .map((u: any) => ({
+          id: u.id,
+          email: u.email,
+          role: roleMap[u.id] || "member",
+          created_at: u.created_at,
+          email_confirmed_at: u.email_confirmed_at,
+          last_sign_in_at: u.last_sign_in_at,
+        }));
 
       return new Response(JSON.stringify({ success: true, users }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -106,15 +123,15 @@ serve(async (req) => {
         });
       }
 
-      // Insert role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({ user_id: newUser.user.id, role });
+      // Insert org membership
+      const { error: memberError } = await supabase
+        .from("org_memberships")
+        .insert({ org_id, user_id: newUser.user.id, role });
 
-      if (roleError) {
+      if (memberError) {
         // Rollback: delete the created user
         await supabase.auth.admin.deleteUser(newUser.user.id);
-        return new Response(JSON.stringify({ error: "Failed to assign role, user creation rolled back", details: roleError.message }), {
+        return new Response(JSON.stringify({ error: "Failed to assign role, user creation rolled back", details: memberError.message }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -144,11 +161,11 @@ serve(async (req) => {
         });
       }
 
-      // Delete existing role and insert new one
-      await supabase.from("user_roles").delete().eq("user_id", user_id);
       const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({ user_id, role });
+        .from("org_memberships")
+        .update({ role })
+        .eq("org_id", org_id)
+        .eq("user_id", user_id);
 
       if (roleError) {
         return new Response(JSON.stringify({ error: "Failed to update role", details: roleError.message }), {
@@ -181,12 +198,28 @@ serve(async (req) => {
         });
       }
 
-      const { error: deleteError } = await supabase.auth.admin.deleteUser(user_id);
-      if (deleteError) {
-        return new Response(JSON.stringify({ error: "Failed to delete user", details: deleteError.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      // Remove membership from this org
+      await supabase
+        .from("org_memberships")
+        .delete()
+        .eq("org_id", org_id)
+        .eq("user_id", user_id);
+
+      // Check if user has other org memberships
+      const { count } = await supabase
+        .from("org_memberships")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user_id);
+
+      // If no other orgs, delete auth user entirely
+      if (!count || count === 0) {
+        const { error: deleteError } = await supabase.auth.admin.deleteUser(user_id);
+        if (deleteError) {
+          return new Response(JSON.stringify({ error: "Failed to delete user", details: deleteError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       return new Response(JSON.stringify({ success: true }), {

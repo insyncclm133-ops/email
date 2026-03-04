@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/contexts/OrgContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,21 +10,24 @@ import type { Tables } from "@/integrations/supabase/types";
 const COLORS = ["hsl(142,70%,40%)", "hsl(210,100%,50%)", "hsl(38,92%,50%)", "hsl(0,84%,60%)", "hsl(220,10%,46%)"];
 
 export default function Reports() {
+  const { currentOrg } = useOrg();
   const [campaigns, setCampaigns] = useState<Tables<"campaigns">[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState("all");
   const [statusData, setStatusData] = useState<{ name: string; value: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from("campaigns").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+    if (!currentOrg) return;
+    supabase.from("campaigns").select("*").eq("org_id", currentOrg.id).order("created_at", { ascending: false }).then(({ data }) => {
       setCampaigns(data ?? []);
     });
-  }, []);
+  }, [currentOrg]);
 
   useEffect(() => {
+    if (!currentOrg) return;
     const fetchReport = async () => {
       setLoading(true);
-      let query = supabase.from("messages").select("status");
+      let query = supabase.from("messages").select("status").eq("org_id", currentOrg.id);
       if (selectedCampaign !== "all") {
         query = query.eq("campaign_id", selectedCampaign);
       }
@@ -35,7 +39,7 @@ export default function Reports() {
       setLoading(false);
     };
     fetchReport();
-  }, [selectedCampaign]);
+  }, [selectedCampaign, currentOrg]);
 
   const totalMessages = statusData.reduce((s, d) => s + d.value, 0);
 
@@ -96,7 +100,6 @@ export default function Reports() {
             </CardContent>
           </Card>
 
-          {/* Summary cards */}
           <Card className="lg:col-span-2">
             <CardHeader><CardTitle>Summary</CardTitle></CardHeader>
             <CardContent>

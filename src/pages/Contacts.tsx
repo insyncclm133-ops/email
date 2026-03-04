@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/contexts/OrgContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export default function Contacts() {
   const { user } = useAuth();
+  const { currentOrg } = useOrg();
   const { toast } = useToast();
   const [contacts, setContacts] = useState<Tables<"contacts">[]>([]);
   const [search, setSearch] = useState("");
@@ -23,21 +25,24 @@ export default function Contacts() {
   const [newContact, setNewContact] = useState({ name: "", phone_number: "", email: "" });
 
   const fetchContacts = async () => {
+    if (!currentOrg) return;
     setLoading(true);
     const { data } = await supabase
       .from("contacts")
       .select("*")
+      .eq("org_id", currentOrg.id)
       .order("created_at", { ascending: false });
     setContacts(data ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchContacts(); }, []);
+  useEffect(() => { fetchContacts(); }, [currentOrg]);
 
   const addContact = async () => {
-    if (!user || !newContact.phone_number) return;
+    if (!user || !currentOrg || !newContact.phone_number) return;
     const { error } = await supabase.from("contacts").insert({
       user_id: user.id,
+      org_id: currentOrg.id,
       name: newContact.name || null,
       phone_number: newContact.phone_number,
       email: newContact.email || null,
@@ -60,10 +65,10 @@ export default function Contacts() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || !currentOrg) return;
 
-    // Upload to storage
-    const path = `${user.id}/${Date.now()}_${file.name}`;
+    // Upload to storage with org_id path
+    const path = `${currentOrg.id}/${user.id}/${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
       .from("contact-lists")
       .upload(path, file);
@@ -73,7 +78,7 @@ export default function Contacts() {
       return;
     }
 
-    // Process CSV client-side for now
+    // Process CSV client-side
     if (file.name.endsWith(".csv")) {
       const text = await file.text();
       const lines = text.split("\n").filter(Boolean);
@@ -91,6 +96,7 @@ export default function Contacts() {
         const cols = line.split(",").map((c) => c.trim());
         return {
           user_id: user.id,
+          org_id: currentOrg.id,
           phone_number: cols[phoneIdx] || "",
           name: nameIdx >= 0 ? cols[nameIdx] || null : null,
           email: emailIdx >= 0 ? cols[emailIdx] || null : null,
