@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +15,14 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(searchParams.get("signup") === "true");
   const [loading, setLoading] = useState(false);
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect once auth is resolved
+  useEffect(() => {
+    if (!authLoading && user) navigate("/dashboard", { replace: true });
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     setIsSignUp(searchParams.get("signup") === "true");
@@ -40,9 +47,8 @@ export default function Login() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         toast({ variant: "destructive", title: "Login failed", description: error.message });
-      } else {
-        navigate("/dashboard");
       }
+      // Navigation handled by useEffect above once auth state resolves
     }
     setLoading(false);
   };

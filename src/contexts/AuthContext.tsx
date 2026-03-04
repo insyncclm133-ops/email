@@ -35,21 +35,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Listen for auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "INITIAL_SESSION") return; // handled by getSession below
+      (event, session) => {
+        if (event === "INITIAL_SESSION") return;
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await resolveAdmin(session.user.id);
+          setLoading(true);
         } else {
           setIsPlatformAdmin(false);
         }
       }
     );
 
-    // Initial session — await admin check before clearing loading
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -61,6 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Resolve admin role whenever user changes
+  useEffect(() => {
+    if (!user) return;
+    resolveAdmin(user.id).then(() => setLoading(false));
+  }, [user?.id]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
