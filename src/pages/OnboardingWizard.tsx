@@ -26,6 +26,8 @@ import {
   Smartphone,
   Facebook,
   Image,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 
 const INDUSTRIES = [
@@ -35,23 +37,40 @@ const INDUSTRIES = [
 
 type SetupPath = null | "default" | "facebook";
 
-const getSteps = (setupPath: SetupPath) => {
-  const base = [
-    { title: "Business Profile", icon: Building2, description: "Tell us about your business" },
-    { title: "Connect WhatsApp", icon: MessageCircle, description: "Choose how to set up WhatsApp" },
+// Step IDs for cleaner conditional rendering
+type StepId = "profile" | "choose" | "numbers" | "register" | "facebook" | "invite" | "launch" | "placeholder";
+
+interface StepDef {
+  id: StepId;
+  title: string;
+  icon: any;
+  description: string;
+}
+
+const getSteps = (setupPath: SetupPath): StepDef[] => {
+  const base: StepDef[] = [
+    { id: "profile", title: "Business Profile", icon: Building2, description: "Tell us about your business" },
+    { id: "choose", title: "Connect WhatsApp", icon: MessageCircle, description: "Choose how to set up WhatsApp" },
   ];
 
   if (setupPath === "default") {
-    base.push({ title: "Add Numbers", icon: Smartphone, description: "Add your WhatsApp numbers" });
+    base.push(
+      { id: "numbers", title: "Add Numbers", icon: Smartphone, description: "Add your WhatsApp numbers" },
+      { id: "register", title: "Register WhatsApp", icon: ExternalLink, description: "Complete registration on Meta" },
+    );
   } else if (setupPath === "facebook") {
-    base.push({ title: "Facebook Setup", icon: Facebook, description: "Connect your Meta account" });
+    base.push(
+      { id: "facebook", title: "Facebook Setup", icon: Facebook, description: "Connect your Meta account" },
+    );
   } else {
-    base.push({ title: "Setup", icon: Smartphone, description: "Configure WhatsApp" });
+    base.push(
+      { id: "placeholder", title: "Setup", icon: Smartphone, description: "Configure WhatsApp" },
+    );
   }
 
   base.push(
-    { title: "Invite Team", icon: Users, description: "Add team members" },
-    { title: "Launch", icon: Rocket, description: "You're all set!" },
+    { id: "invite", title: "Invite Team", icon: Users, description: "Add team members" },
+    { id: "launch", title: "Launch", icon: Rocket, description: "You're all set!" },
   );
 
   return base;
@@ -66,7 +85,7 @@ export default function OnboardingWizard() {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Step 1: Business profile
+  // Step: Business profile
   const [orgName, setOrgName] = useState(currentOrg?.name ?? "");
   const [website, setWebsite] = useState(currentOrg?.website ?? "");
   const [industry, setIndustry] = useState(currentOrg?.industry ?? "");
@@ -74,17 +93,17 @@ export default function OnboardingWizard() {
   const [logoPreview, setLogoPreview] = useState<string | null>(currentOrg?.logo_url ?? null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  // Step 2: Setup path
+  // Step: Setup path
   const [setupPath, setSetupPath] = useState<SetupPath>(null);
 
-  // Step 3A: Phone numbers (default setup)
+  // Step: Phone numbers (default setup)
   const [phoneNumbers, setPhoneNumbers] = useState<string[]>([""]);
 
-  // Step 3B: Facebook setup
-  const [fbConnecting, setFbConnecting] = useState(false);
-  const [fbConnected, setFbConnected] = useState(false);
+  // Step: ISV registration (shared by both paths)
+  const [isvConnecting, setIsvConnecting] = useState(false);
+  const [isvConnected, setIsvConnected] = useState(false);
 
-  // Step 4: Invite team
+  // Step: Invite team
   const [inviteEmail, setInviteEmail] = useState("");
 
   if (!user || !currentOrg) {
@@ -93,6 +112,7 @@ export default function OnboardingWizard() {
   }
 
   const STEPS = getSteps(setupPath);
+  const currentStepId = STEPS[step]?.id;
 
   const handleNext = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const handleBack = () => setStep((s) => Math.max(s - 1, 0));
@@ -124,7 +144,7 @@ export default function OnboardingWizard() {
     return urlData.publicUrl;
   };
 
-  // ── Step 1: Save business profile ──
+  // ── Save business profile ──
   const handleSaveProfile = async () => {
     if (!orgName.trim()) {
       toast({ variant: "destructive", title: "Validation", description: "Organization name is required." });
@@ -148,23 +168,19 @@ export default function OnboardingWizard() {
     setLoading(false);
   };
 
-  // ── Step 2: Choose setup path ──
+  // ── Choose setup path ──
   const handleChooseSetup = (path: SetupPath) => {
     setSetupPath(path);
     handleNext();
   };
 
-  // ── Step 3A: Save phone numbers (default) ──
+  // ── Phone numbers ──
   const addPhoneField = () => {
-    if (phoneNumbers.length < 4) {
-      setPhoneNumbers([...phoneNumbers, ""]);
-    }
+    if (phoneNumbers.length < 4) setPhoneNumbers([...phoneNumbers, ""]);
   };
 
   const removePhoneField = (index: number) => {
-    if (phoneNumbers.length > 1) {
-      setPhoneNumbers(phoneNumbers.filter((_, i) => i !== index));
-    }
+    if (phoneNumbers.length > 1) setPhoneNumbers(phoneNumbers.filter((_, i) => i !== index));
   };
 
   const updatePhone = (index: number, value: string) => {
@@ -194,9 +210,9 @@ export default function OnboardingWizard() {
     setLoading(false);
   };
 
-  // ── Step 3B: Facebook connect ──
-  const handleFacebookConnect = async () => {
-    setFbConnecting(true);
+  // ── Exotel ISV onboarding (used by both register & facebook steps) ──
+  const handleExotelConnect = async () => {
+    setIsvConnecting(true);
     try {
       const { data, error } = await supabase.functions.invoke("whatsapp-onboarding", {
         body: { action: "generate_link", org_id: currentOrg.id },
@@ -204,45 +220,43 @@ export default function OnboardingWizard() {
       if (error) throw error;
       if (data?.error) {
         toast({ variant: "destructive", title: "Error", description: data.error });
-        setFbConnecting(false);
+        setIsvConnecting(false);
         return;
       }
 
       // Extract the onboarding URL from Exotel's response
       const onboardingUrl = data?.data?.response?.whatsapp?.isv?.data?.url || data?.data?.url;
       if (onboardingUrl) {
-        // Open in a new window
         const popup = window.open(onboardingUrl, "whatsapp_onboarding", "width=800,height=700,scrollbars=yes");
 
-        // Poll for popup close
         const pollTimer = setInterval(async () => {
           if (popup?.closed) {
             clearInterval(pollTimer);
-            // Save facebook setup type
             await supabase.functions.invoke("whatsapp-onboarding", {
-              body: { action: "save_facebook", org_id: currentOrg.id },
+              body: {
+                action: setupPath === "facebook" ? "save_facebook" : "save_numbers",
+                org_id: currentOrg.id,
+                ...(setupPath === "default" ? { phone_numbers: phoneNumbers.map((n) => n.trim()).filter(Boolean) } : {}),
+              },
             });
-            setFbConnected(true);
-            setFbConnecting(false);
-            toast({ title: "Facebook setup initiated", description: "Your WhatsApp number will be activated shortly." });
+            setIsvConnected(true);
+            setIsvConnecting(false);
+            toast({ title: "WhatsApp registration initiated", description: "Your number(s) will be activated shortly." });
           }
         }, 1000);
       } else {
         toast({ variant: "destructive", title: "Error", description: "Could not generate onboarding link. Please try again." });
-        setFbConnecting(false);
+        setIsvConnecting(false);
       }
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
-      setFbConnecting(false);
+      setIsvConnecting(false);
     }
   };
 
-  // ── Step 4: Invite team ──
+  // ── Invite team ──
   const handleInvite = async () => {
-    if (!inviteEmail) {
-      handleNext();
-      return;
-    }
+    if (!inviteEmail) { handleNext(); return; }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("manage-users", {
@@ -265,7 +279,7 @@ export default function OnboardingWizard() {
     setLoading(false);
   };
 
-  // ── Step 5: Complete ──
+  // ── Complete onboarding ──
   const handleComplete = async () => {
     setLoading(true);
     try {
@@ -289,8 +303,71 @@ export default function OnboardingWizard() {
     exit: (direction: number) => ({ x: direction > 0 ? -300 : 300, opacity: 0 }),
   };
 
-  const inviteStepIndex = STEPS.length - 2;
-  const launchStepIndex = STEPS.length - 1;
+  // ── Shared ISV registration UI (used by both "register" and "facebook" steps) ──
+  const renderIsvStep = (contextLabel: string, infoItems: string[]) => (
+    <div className="space-y-5">
+      {!isvConnected ? (
+        <>
+          <div className="rounded-lg bg-blue-500/5 border border-blue-500/20 p-4">
+            <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400">{contextLabel}</h4>
+            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+              {infoItems.map((item, i) => (
+                <li key={i}>{i + 1}. {item}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex justify-center">
+            <Button
+              onClick={handleExotelConnect}
+              disabled={isvConnecting}
+              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6"
+              size="lg"
+            >
+              {isvConnecting ? (
+                <><Loader2 className="h-5 w-5 animate-spin" /> Opening registration...</>
+              ) : (
+                <><ExternalLink className="h-5 w-5" /> Register on WhatsApp</>
+              )}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col items-center gap-3 py-4">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 200 }}
+            className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10"
+          >
+            <Check className="h-8 w-8 text-green-500" />
+          </motion.div>
+          <h4 className="font-semibold text-green-700 dark:text-green-400">Registration Complete</h4>
+          <p className="text-sm text-muted-foreground text-center">
+            Your WhatsApp number(s) will be activated shortly after verification.
+          </p>
+        </div>
+      )}
+
+      <div className="flex justify-between gap-2 pt-2">
+        <Button variant="outline" onClick={handleBack} className="gap-2">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Button>
+        <div className="flex gap-2">
+          {!isvConnected && (
+            <Button variant="ghost" onClick={handleNext} className="gap-2">
+              <SkipForward className="h-4 w-4" /> Skip for now
+            </Button>
+          )}
+          {isvConnected && (
+            <Button onClick={handleNext} className="gap-2">
+              Continue <ArrowRight className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
@@ -334,10 +411,9 @@ export default function OnboardingWizard() {
               exit="exit"
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
             >
-              {/* ══════ Step 1: Business Profile ══════ */}
-              {step === 0 && (
+              {/* ══════ Business Profile ══════ */}
+              {currentStepId === "profile" && (
                 <div className="space-y-4">
-                  {/* Logo upload */}
                   <div className="flex flex-col items-center gap-3">
                     <div
                       onClick={() => fileInputRef.current?.click()}
@@ -392,8 +468,8 @@ export default function OnboardingWizard() {
                 </div>
               )}
 
-              {/* ══════ Step 2: Choose Setup Path ══════ */}
-              {step === 1 && (
+              {/* ══════ Choose Setup Path ══════ */}
+              {currentStepId === "choose" && (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground text-center">
                     How would you like to set up WhatsApp for your business?
@@ -409,7 +485,7 @@ export default function OnboardingWizard() {
                       <div>
                         <h3 className="font-semibold">Default Setup</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          Quickest way to get started. Add your WhatsApp phone numbers and start sending messages right away.
+                          Quickest way to get started. Add your WhatsApp phone numbers and we'll register them for you.
                         </p>
                       </div>
                     </button>
@@ -438,8 +514,8 @@ export default function OnboardingWizard() {
                 </div>
               )}
 
-              {/* ══════ Step 3A: Add Phone Numbers (Default) ══════ */}
-              {step === 2 && setupPath === "default" && (
+              {/* ══════ Add Phone Numbers (Default path) ══════ */}
+              {currentStepId === "numbers" && (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     Add up to 4 WhatsApp phone numbers for your business. Include the country code.
@@ -483,67 +559,30 @@ export default function OnboardingWizard() {
                 </div>
               )}
 
-              {/* ══════ Step 3B: Facebook Setup ══════ */}
-              {step === 2 && setupPath === "facebook" && (
-                <div className="space-y-5">
-                  {!fbConnected ? (
-                    <>
-                      <div className="rounded-lg bg-blue-500/5 border border-blue-500/20 p-4">
-                        <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400">What happens next?</h4>
-                        <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                          <li>1. A new window will open for Meta Business signup</li>
-                          <li>2. Log in with your Facebook account</li>
-                          <li>3. Create or select your WhatsApp Business Account</li>
-                          <li>4. Register your phone number</li>
-                        </ul>
-                      </div>
-
-                      <div className="flex justify-center">
-                        <Button
-                          onClick={handleFacebookConnect}
-                          disabled={fbConnecting}
-                          className="gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6"
-                          size="lg"
-                        >
-                          <Facebook className="h-5 w-5" />
-                          {fbConnecting ? "Connecting..." : "Connect with Facebook"}
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center gap-3 py-4">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
-                        <Check className="h-8 w-8 text-green-500" />
-                      </div>
-                      <h4 className="font-semibold text-green-700 dark:text-green-400">Facebook Connected</h4>
-                      <p className="text-sm text-muted-foreground text-center">
-                        Your Meta Business account has been linked. Your WhatsApp number will be activated shortly.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between gap-2 pt-2">
-                    <Button variant="outline" onClick={handleBack} className="gap-2">
-                      <ArrowLeft className="h-4 w-4" /> Back
-                    </Button>
-                    <div className="flex gap-2">
-                      {!fbConnected && (
-                        <Button variant="ghost" onClick={handleNext} className="gap-2">
-                          <SkipForward className="h-4 w-4" /> Skip for now
-                        </Button>
-                      )}
-                      {fbConnected && (
-                        <Button onClick={handleNext} className="gap-2">
-                          Continue <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+              {/* ══════ Register WhatsApp (Default path - after numbers) ══════ */}
+              {currentStepId === "register" && renderIsvStep(
+                "Register your numbers on WhatsApp",
+                [
+                  "A new window will open for WhatsApp Business registration",
+                  "Log in with a Facebook account (create one if needed)",
+                  "Your phone number(s) will be linked to a WhatsApp Business Account",
+                  "Verification will be completed via SMS or call",
+                ],
               )}
 
-              {/* ══════ Step 4: Invite Team ══════ */}
-              {step === inviteStepIndex && (
+              {/* ══════ Facebook Setup (Facebook path) ══════ */}
+              {currentStepId === "facebook" && renderIsvStep(
+                "Connect your existing Meta Business account",
+                [
+                  "A new window will open for Meta Business signup",
+                  "Log in with your Facebook account",
+                  "Select your existing WhatsApp Business Account",
+                  "Grant access to connect it with In-Sync",
+                ],
+              )}
+
+              {/* ══════ Invite Team ══════ */}
+              {currentStepId === "invite" && (
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Email Address</Label>
@@ -566,8 +605,8 @@ export default function OnboardingWizard() {
                 </div>
               )}
 
-              {/* ══════ Step 5: Launch ══════ */}
-              {step === launchStepIndex && (
+              {/* ══════ Launch ══════ */}
+              {currentStepId === "launch" && (
                 <div className="space-y-6 text-center">
                   <motion.div
                     initial={{ scale: 0 }}
