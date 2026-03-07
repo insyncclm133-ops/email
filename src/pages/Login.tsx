@@ -14,6 +14,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(searchParams.get("signup") === "true");
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -32,14 +33,21 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    if (isSignUp) {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin },
+    if (isForgotPassword) {
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: { type: "reset_password", email },
       });
-      if (error) {
-        toast({ variant: "destructive", title: "Sign up failed", description: error.message });
+      if (error || data?.error) {
+        toast({ variant: "destructive", title: "Error", description: data?.error || error?.message });
+      } else {
+        toast({ title: "Check your email", description: "If an account exists, we've sent a password reset link." });
+      }
+    } else if (isSignUp) {
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: { type: "register", email, password },
+      });
+      if (error || data?.error) {
+        toast({ variant: "destructive", title: "Sign up failed", description: data?.error || error?.message });
       } else {
         toast({ title: "Check your email", description: "We've sent you a confirmation link." });
       }
@@ -71,10 +79,12 @@ export default function Login() {
             <MessageCircle className="h-7 w-7 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            {isSignUp ? "Create your account" : "Welcome back"}
+            {isForgotPassword ? "Reset password" : isSignUp ? "Create your account" : "Welcome back"}
           </CardTitle>
           <CardDescription>
-            {isSignUp
+            {isForgotPassword
+              ? "Enter your email and we'll send you a reset link"
+              : isSignUp
               ? "Sign up to start managing your WhatsApp campaigns"
               : "Sign in to your campaign dashboard"}
           </CardDescription>
@@ -92,30 +102,59 @@ export default function Login() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
+            {!isForgotPassword && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
+              {loading
+                ? "Please wait..."
+                : isForgotPassword
+                ? "Send Reset Link"
+                : isSignUp
+                ? "Create Account"
+                : "Sign In"}
             </Button>
           </form>
+          {!isForgotPassword && !isSignUp && (
+            <p className="mt-3 text-center">
+              <button
+                onClick={() => setIsForgotPassword(true)}
+                className="text-sm text-muted-foreground hover:text-primary hover:underline"
+              >
+                Forgot password?
+              </button>
+            </p>
+          )}
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-            <button
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="font-medium text-primary hover:underline"
-            >
-              {isSignUp ? "Sign in" : "Sign up"}
-            </button>
+            {isForgotPassword ? (
+              <button
+                onClick={() => setIsForgotPassword(false)}
+                className="font-medium text-primary hover:underline"
+              >
+                Back to sign in
+              </button>
+            ) : (
+              <>
+                {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+                <button
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {isSignUp ? "Sign in" : "Sign up"}
+                </button>
+              </>
+            )}
           </p>
         </CardContent>
       </Card>

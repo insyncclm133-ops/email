@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmail, invitationEmailHtml } from "../_shared/resend.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -135,6 +136,26 @@ serve(async (req) => {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // Send invitation email (best effort — don't fail the operation if email fails)
+      try {
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("name")
+          .eq("id", org_id)
+          .single();
+
+        const siteUrl = Deno.env.get("SITE_URL") || "https://in-sync.co.in";
+        const orgName = org?.name || "your organization";
+
+        await sendEmail({
+          to: email,
+          subject: `You've been invited to ${orgName} on InSync`,
+          html: invitationEmailHtml(orgName, email, password, `${siteUrl}/login`),
+        });
+      } catch (emailErr) {
+        console.error("Failed to send invitation email:", emailErr);
       }
 
       return new Response(JSON.stringify({ success: true, user: { id: newUser.user.id, email: newUser.user.email, role } }), {
