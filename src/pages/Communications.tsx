@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { AiInsights } from "@/components/AiInsights";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -397,13 +398,16 @@ export default function Communications() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 items-center justify-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
             <div className="text-center">
               <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground/30" />
               <p className="mt-3 text-sm text-muted-foreground">
                 Select a conversation to start messaging
               </p>
             </div>
+            {conversations.length > 0 && (
+              <AiInsights type="inbox" className="w-full max-w-lg" />
+            )}
           </div>
         )}
       </div>

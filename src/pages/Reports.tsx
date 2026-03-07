@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { AiInsights } from "@/components/AiInsights";
 import type { Tables } from "@/integrations/supabase/types";
 
 const COLORS = ["hsl(142,70%,40%)", "hsl(210,100%,50%)", "hsl(38,92%,50%)", "hsl(0,84%,60%)", "hsl(220,10%,46%)"];
@@ -67,6 +68,12 @@ export default function Reports() {
           </SelectContent>
         </Select>
       </div>
+
+      {selectedCampaign !== "all" && (
+        <div className="mb-6">
+          <AiInsights type="campaign" context={{ campaign_id: selectedCampaign }} />
+        </div>
+      )}
 
       {loading ? (
         <p className="py-8 text-center text-muted-foreground">Loading...</p>

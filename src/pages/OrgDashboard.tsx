@@ -32,6 +32,7 @@ import { useOrg } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { seedDashboardData, unseedDashboardData } from "@/lib/seedDashboard";
+import { AiInsights } from "@/components/AiInsights";
 import { useState } from "react";
 
 const fadeIn = {
@@ -484,6 +485,11 @@ export default function OrgDashboard() {
         {/* Row 1: KPI Cards */}
         <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0 }}>
           {loading ? <SectionSkeleton height="h-32" /> : <KpiCards kpis={data.kpis} />}
+        </motion.div>
+
+        {/* AI Insights */}
+        <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.05 }}>
+          {!loading && <AiInsights type="dashboard" />}
         </motion.div>
 
         {/* Row 2: Chart + Quick Stats */}
