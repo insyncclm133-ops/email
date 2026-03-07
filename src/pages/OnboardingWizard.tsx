@@ -98,6 +98,9 @@ export default function OnboardingWizard() {
 
   // Step: Phone numbers (default setup)
   const [phoneNumbers, setPhoneNumbers] = useState<string[]>([""]);
+  const [phoneLogs, setPhoneLogs] = useState<Record<string, File | null>>({});
+  const [phoneLogoPreviews, setPhoneLogoPreviews] = useState<Record<string, string>>({});
+  const phoneLogoRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   // Step: ISV registration (shared by both paths)
   const [isvConnecting, setIsvConnecting] = useState(false);
@@ -189,6 +192,37 @@ export default function OnboardingWizard() {
     setPhoneNumbers(updated);
   };
 
+  const handlePhoneLogoSelect = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "File too large", description: "Logo must be under 5MB." });
+      return;
+    }
+    const number = phoneNumbers[index];
+    setPhoneLogs((prev) => ({ ...prev, [number]: file }));
+    setPhoneLogoPreviews((prev) => ({ ...prev, [number]: URL.createObjectURL(file) }));
+  };
+
+  const uploadPhoneLogos = async (validNumbers: string[]): Promise<Record<string, string>> => {
+    const logoUrls: Record<string, string> = {};
+    for (const number of validNumbers) {
+      const file = phoneLogs[number];
+      if (!file) continue;
+      const cleanNum = number.replace(/[^0-9]/g, "");
+      const ext = file.name.split(".").pop();
+      const path = `${currentOrg.id}/phone-${cleanNum}.${ext}`;
+      const { error } = await supabase.storage.from("org-logos").upload(path, file, { upsert: true });
+      if (error) {
+        console.error(`Failed to upload logo for ${number}:`, error.message);
+        continue;
+      }
+      const { data: urlData } = supabase.storage.from("org-logos").getPublicUrl(path);
+      logoUrls[number] = urlData.publicUrl;
+    }
+    return logoUrls;
+  };
+
   const handleSaveNumbers = async () => {
     const validNumbers = phoneNumbers.map((n) => n.trim()).filter(Boolean);
     if (validNumbers.length === 0) {
@@ -197,8 +231,11 @@ export default function OnboardingWizard() {
     }
     setLoading(true);
     try {
+      // Upload per-number logos to storage
+      const logoUrls = await uploadPhoneLogos(validNumbers);
+
       const { data, error } = await supabase.functions.invoke("whatsapp-onboarding", {
-        body: { action: "save_numbers", org_id: currentOrg.id, phone_numbers: validNumbers },
+        body: { action: "save_numbers", org_id: currentOrg.id, phone_numbers: validNumbers, phone_logos: logoUrls },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -242,6 +279,15 @@ export default function OnboardingWizard() {
             setIsvConnected(true);
             setIsvConnecting(false);
             toast({ title: "WhatsApp registration initiated", description: "Your number(s) will be activated shortly." });
+
+            // Auto-trigger profile picture update in background (best-effort)
+            supabase.functions.invoke("whatsapp-onboarding", {
+              body: { action: "update_profile_pictures", org_id: currentOrg.id },
+            }).then(({ data }) => {
+              if (data?.success) {
+                console.log("Profile picture update results:", data.results);
+              }
+            }).catch(() => {});
           }
         }, 1000);
       } else {
@@ -518,26 +564,50 @@ export default function OnboardingWizard() {
               {currentStepId === "numbers" && (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Add up to 4 WhatsApp phone numbers for your business. Include the country code.
+                    Add up to 4 WhatsApp phone numbers with an optional profile picture for each.
                   </p>
 
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {phoneNumbers.map((num, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                          {i + 1}
+                      <div key={i} className="flex items-start gap-3 rounded-lg border border-muted p-3">
+                        <div
+                          onClick={() => phoneLogoRefs.current[i]?.click()}
+                          className="group relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30 bg-muted/50 transition-colors hover:border-primary/50 overflow-hidden"
+                        >
+                          {phoneLogoPreviews[num] ? (
+                            <img src={phoneLogoPreviews[num]} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <Image className="h-4 w-4 text-muted-foreground" />
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                            <Upload className="h-3 w-3 text-white" />
+                          </div>
                         </div>
-                        <Input
-                          value={num}
-                          onChange={(e) => updatePhone(i, e.target.value)}
-                          placeholder="+91 98765 43210"
-                          className="flex-1"
+                        <input
+                          ref={(el) => { phoneLogoRefs.current[i] = el; }}
+                          type="file"
+                          accept="image/png,image/jpeg"
+                          className="hidden"
+                          onChange={(e) => handlePhoneLogoSelect(i, e)}
                         />
-                        {phoneNumbers.length > 1 && (
-                          <Button variant="ghost" size="icon" onClick={() => removePhoneField(i)} className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive">
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={num}
+                              onChange={(e) => updatePhone(i, e.target.value)}
+                              placeholder="+91 98765 43210"
+                              className="flex-1"
+                            />
+                            {phoneNumbers.length > 1 && (
+                              <Button variant="ghost" size="icon" onClick={() => removePhoneField(i)} className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            {phoneLogoPreviews[num] ? "Logo attached" : "Click circle to add a profile picture (optional)"}
+                          </p>
+                        </div>
                       </div>
                     ))}
                   </div>

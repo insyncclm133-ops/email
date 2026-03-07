@@ -126,12 +126,15 @@ serve(async (req) => {
         });
       }
 
-      // Save phone numbers and mark setup type as default
+      const { phone_logos } = body;
+
+      // Save phone numbers, logos, and mark setup type as default
       const { error: credError } = await supabase
         .from("org_credentials")
         .upsert({
           org_id,
           phone_numbers,
+          phone_logos: phone_logos || {},
           setup_type: "default",
           exotel_sender_number: phone_numbers[0],
           updated_at: new Date().toISOString(),
@@ -171,7 +174,133 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Invalid action. Use: generate_link, save_numbers, save_facebook" }), {
+    // ── UPDATE WHATSAPP PROFILE PICTURES ──
+    if (action === "update_profile_pictures") {
+      const systemToken = Deno.env.get("META_SYSTEM_USER_TOKEN");
+      const fbAppId = Deno.env.get("FB_APP_ID");
+      const wabaId = Deno.env.get("EXOTEL_WABA_ID");
+
+      if (!systemToken || !fbAppId) {
+        return new Response(JSON.stringify({ error: "Meta System User Token not configured" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get org credentials with phone logos
+      const { data: creds } = await supabase
+        .from("org_credentials")
+        .select("phone_numbers, phone_logos")
+        .eq("org_id", org_id)
+        .maybeSingle();
+
+      if (!creds?.phone_numbers?.length) {
+        return new Response(JSON.stringify({ error: "No phone numbers found for this org" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const logos: Record<string, string> = creds.phone_logos || {};
+      const results: Record<string, any> = {};
+
+      // Get all phone numbers registered on the WABA
+      const phoneListRes = await fetch(
+        `https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?access_token=${systemToken}`
+      );
+      const phoneListData = await phoneListRes.json();
+      console.log("WABA phone numbers:", JSON.stringify(phoneListData));
+
+      const registeredPhones: any[] = phoneListData?.data || [];
+
+      for (const number of creds.phone_numbers) {
+        const logoUrl = logos[number];
+        if (!logoUrl) {
+          results[number] = { skipped: "no logo" };
+          continue;
+        }
+
+        // Find the phone_number_id for this number
+        const cleanNumber = number.replace(/[^0-9]/g, "");
+        const phoneEntry = registeredPhones.find((p: any) => {
+          const registeredClean = (p.display_phone_number || "").replace(/[^0-9]/g, "");
+          return registeredClean === cleanNumber || registeredClean.endsWith(cleanNumber) || cleanNumber.endsWith(registeredClean);
+        });
+
+        if (!phoneEntry?.id) {
+          results[number] = { skipped: "not found on WABA" };
+          continue;
+        }
+
+        try {
+          // Step 1: Download the logo
+          const logoRes = await fetch(logoUrl);
+          if (!logoRes.ok) {
+            results[number] = { error: "Failed to download logo" };
+            continue;
+          }
+          const logoBytes = await logoRes.arrayBuffer();
+          const logoBuffer = new Uint8Array(logoBytes);
+          const contentType = logoRes.headers.get("content-type") || "image/jpeg";
+          const fileSize = logoBuffer.length;
+
+          // Step 2: Upload to Meta via Resumable Upload API
+          const sessionUrl = `https://graph.facebook.com/v21.0/${fbAppId}/uploads?file_length=${fileSize}&file_type=${encodeURIComponent(contentType)}&access_token=${systemToken}`;
+          const sessionRes = await fetch(sessionUrl, { method: "POST" });
+          const sessionData = await sessionRes.json();
+
+          if (!sessionData?.id) {
+            results[number] = { error: "Upload session failed", details: sessionData };
+            continue;
+          }
+
+          const uploadRes = await fetch(`https://graph.facebook.com/v21.0/${sessionData.id}`, {
+            method: "POST",
+            headers: {
+              Authorization: `OAuth ${systemToken}`,
+              file_offset: "0",
+            },
+            body: logoBuffer,
+          });
+          const uploadData = await uploadRes.json();
+
+          if (!uploadData?.h) {
+            results[number] = { error: "Upload failed", details: uploadData };
+            continue;
+          }
+
+          // Step 3: Update WhatsApp Business profile with the picture handle
+          const profileRes = await fetch(
+            `https://graph.facebook.com/v21.0/${phoneEntry.id}/whatsapp_business_profile`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${systemToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                profile_picture_handle: uploadData.h,
+              }),
+            }
+          );
+          const profileData = await profileRes.json();
+          console.log(`Profile update for ${number}:`, JSON.stringify(profileData));
+
+          results[number] = profileRes.ok
+            ? { success: true }
+            : { error: "Profile update failed", details: profileData };
+        } catch (err) {
+          results[number] = { error: (err as Error).message };
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: "Invalid action. Use: generate_link, save_numbers, save_facebook, update_profile_pictures" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
