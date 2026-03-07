@@ -106,7 +106,14 @@ export default function Campaigns() {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } else {
       toast({ title: "Campaign launched!" });
-      supabase.functions.invoke("send-campaign", { body: { campaign_id: id } });
+      const { data: sendResult } = await supabase.functions.invoke("send-campaign", { body: { campaign_id: id } });
+      if (sendResult?.error === "Insufficient balance") {
+        toast({
+          variant: "destructive",
+          title: "Insufficient Balance",
+          description: `Required: ₹${sendResult.required}, Current: ₹${sendResult.current_balance}. Please add ₹${sendResult.shortfall} to your wallet.`,
+        });
+      }
       fetchCampaigns();
     }
   };
