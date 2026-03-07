@@ -642,12 +642,25 @@ function TemplateBuilder({
         },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error + (data.details ? `: ${JSON.stringify(data.details)}` : ""));
+      if (error) {
+        // Extract actual error details from the edge function response
+        const ctx = (error as any).context;
+        const detail = ctx?.error || ctx?.message || ctx?.details;
+        const detailStr = detail
+          ? (typeof detail === "string" ? detail : JSON.stringify(detail))
+          : error.message;
+        throw new Error(detailStr);
+      }
+      if (data?.error) {
+        const details = data.details ? JSON.stringify(data.details, null, 2) : "";
+        console.error("Template submission error:", data.error, details);
+        throw new Error(`${data.error}${details ? `\n${details}` : ""}`);
+      }
 
       toast({ title: "Template submitted", description: "Sent to WhatsApp for approval." });
       onCreated();
     } catch (err: any) {
+      console.error("Template submission error:", err);
       toast({ variant: "destructive", title: "Submission failed", description: err.message });
     } finally {
       setSubmitting(false);

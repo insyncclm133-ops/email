@@ -75,10 +75,13 @@ serve(async (req) => {
       });
 
       const exotelData = await exotelRes.json();
+      console.log("Exotel submit response status:", exotelRes.status);
+      console.log("Exotel submit response:", JSON.stringify(exotelData, null, 2));
 
       if (!exotelRes.ok) {
-        return new Response(JSON.stringify({ error: "Exotel API error", details: exotelData }), {
-          status: exotelRes.status,
+        // Return 200 so the frontend can read the error details
+        return new Response(JSON.stringify({ error: "Exotel API error", details: exotelData, exotel_status: exotelRes.status }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
