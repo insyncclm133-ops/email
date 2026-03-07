@@ -49,7 +49,13 @@ serve(async (req) => {
         );
       }
 
-      const confirmLink = linkData?.properties?.action_link;
+      // Force redirect_to in the action link to point to /login
+      let confirmLink = linkData?.properties?.action_link;
+      if (confirmLink) {
+        const url = new URL(confirmLink);
+        url.searchParams.set("redirect_to", `${siteUrl}/login`);
+        confirmLink = url.toString();
+      }
       if (!confirmLink) {
         return new Response(
           JSON.stringify({ error: "Failed to generate confirmation link" }),
@@ -100,7 +106,12 @@ serve(async (req) => {
         );
       }
 
-      const resetLink = linkData?.properties?.action_link;
+      let resetLink = linkData?.properties?.action_link;
+      if (resetLink) {
+        const url = new URL(resetLink);
+        url.searchParams.set("redirect_to", `${siteUrl}/reset-password`);
+        resetLink = url.toString();
+      }
       if (resetLink) {
         await sendEmail({
           to: email,
