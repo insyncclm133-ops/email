@@ -151,7 +151,7 @@ serve(async (req) => {
 
         await sendEmail({
           to: email,
-          subject: `You've been invited to ${orgName} on InSync`,
+          subject: `You've been invited to ${orgName} on In-Sync`,
           html: invitationEmailHtml(orgName, email, password, `${siteUrl}/login`),
         });
       } catch (emailErr) {

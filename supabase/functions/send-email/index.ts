@@ -65,7 +65,7 @@ serve(async (req) => {
 
       await sendEmail({
         to: email,
-        subject: "Confirm your InSync account",
+        subject: "Confirm your In-Sync account",
         html: confirmationEmailHtml(confirmLink),
       });
 
@@ -115,7 +115,7 @@ serve(async (req) => {
       if (resetLink) {
         await sendEmail({
           to: email,
-          subject: "Reset your InSync password",
+          subject: "Reset your In-Sync password",
           html: resetPasswordEmailHtml(resetLink),
         });
       }

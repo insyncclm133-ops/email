@@ -17,7 +17,7 @@ export async function sendEmail(payload: EmailPayload): Promise<{ id: string }> 
       Authorization: `Bearer ${RESEND_API_KEY}`,
     },
     body: JSON.stringify({
-      from: "InSync <noreply@in-sync.co.in>",
+      from: "In-Sync <noreply@in-sync.co.in>",
       to: [payload.to],
       subject: payload.subject,
       html: payload.html,
@@ -41,22 +41,22 @@ export function confirmationEmailHtml(confirmLink: string): string {
     <tr><td align="center">
       <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
         <tr><td style="background:#18181b;padding:28px 32px;text-align:center;">
-          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">InSync</h1>
+          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">In-Sync</h1>
         </td></tr>
         <tr><td style="padding:32px;">
           <h2 style="margin:0 0 12px;color:#18181b;font-size:20px;">Confirm your email</h2>
           <p style="color:#52525b;font-size:15px;line-height:1.6;margin:0 0 24px;">
-            Thanks for signing up for InSync! Click the button below to confirm your email address and get started.
+            Thanks for signing up for In-Sync! Click the button below to confirm your email address and get started.
           </p>
           <a href="${confirmLink}" style="display:inline-block;background:#6366f1;color:#ffffff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">
             Confirm Email
           </a>
           <p style="color:#a1a1aa;font-size:13px;line-height:1.5;margin:24px 0 0;">
-            If you didn't create an account on InSync, you can safely ignore this email.
+            If you didn't create an account on In-Sync, you can safely ignore this email.
           </p>
         </td></tr>
         <tr><td style="padding:20px 32px;background:#fafafa;border-top:1px solid #f0f0f0;">
-          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">InSync &mdash; WhatsApp Campaign Management</p>
+          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">In-Sync &mdash; WhatsApp Campaign Management</p>
         </td></tr>
       </table>
     </td></tr>
@@ -75,7 +75,7 @@ export function resetPasswordEmailHtml(resetLink: string): string {
     <tr><td align="center">
       <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
         <tr><td style="background:#18181b;padding:28px 32px;text-align:center;">
-          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">InSync</h1>
+          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">In-Sync</h1>
         </td></tr>
         <tr><td style="padding:32px;">
           <h2 style="margin:0 0 12px;color:#18181b;font-size:20px;">Reset your password</h2>
@@ -90,7 +90,7 @@ export function resetPasswordEmailHtml(resetLink: string): string {
           </p>
         </td></tr>
         <tr><td style="padding:20px 32px;background:#fafafa;border-top:1px solid #f0f0f0;">
-          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">InSync &mdash; WhatsApp Campaign Management</p>
+          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">In-Sync &mdash; WhatsApp Campaign Management</p>
         </td></tr>
       </table>
     </td></tr>
@@ -114,12 +114,12 @@ export function invitationEmailHtml(
     <tr><td align="center">
       <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
         <tr><td style="background:#18181b;padding:28px 32px;text-align:center;">
-          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">InSync</h1>
+          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">In-Sync</h1>
         </td></tr>
         <tr><td style="padding:32px;">
           <h2 style="margin:0 0 12px;color:#18181b;font-size:20px;">You've been invited!</h2>
           <p style="color:#52525b;font-size:15px;line-height:1.6;margin:0 0 20px;">
-            You've been invited to join <strong>${orgName}</strong> on InSync.
+            You've been invited to join <strong>${orgName}</strong> on In-Sync.
             Use the credentials below to sign in.
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;border-radius:8px;padding:16px;margin:0 0 24px;">
@@ -136,7 +136,7 @@ export function invitationEmailHtml(
           </p>
         </td></tr>
         <tr><td style="padding:20px 32px;background:#fafafa;border-top:1px solid #f0f0f0;">
-          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">InSync &mdash; WhatsApp Campaign Management</p>
+          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">In-Sync &mdash; WhatsApp Campaign Management</p>
         </td></tr>
       </table>
     </td></tr>
