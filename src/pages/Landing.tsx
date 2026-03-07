@@ -76,7 +76,7 @@ export default function Landing() {
               <MessageCircle className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-lg font-bold tracking-tight text-foreground">
-              WhatsApp Hub
+              In-Sync
             </span>
           </Link>
           <div className="flex items-center gap-3">
@@ -216,10 +216,10 @@ export default function Landing() {
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <MessageCircle className="h-4 w-4 text-primary" />
-              WhatsApp Hub
+              In-Sync
             </div>
             <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} WhatsApp Hub. All rights reserved.
+              © {new Date().getFullYear()} In-Sync. All rights reserved.
             </p>
           </div>
         </div>

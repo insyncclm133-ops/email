@@ -46,7 +46,7 @@ export function AppSidebar() {
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
         <MessageCircle className="h-7 w-7 text-sidebar-primary" />
         <span className="text-lg font-bold tracking-tight text-sidebar-primary-foreground">
-          WhatsApp Hub
+          In-Sync
         </span>
       </div>
 
