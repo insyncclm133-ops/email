@@ -252,7 +252,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
 
   // Launching + progress
   const [launching, setLaunching] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number; failed: number } | null>(null);
 
   // Derived
   const templateVars = useMemo(
@@ -414,7 +414,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   const launch = async () => {
     if (!user || !currentOrg || !selectedTemplate) return;
     setLaunching(true);
-    setUploadProgress({ done: 0, total: csvRows.length });
+    setUploadProgress({ done: 0, total: csvRows.length, failed: 0 });
 
     try {
       // 1. Upload media if needed
@@ -467,22 +467,42 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
       }).filter((c) => c.phone_number);
 
       // 4. Process in chunks of UPLOAD_BATCH (5000), each chunk sub-batched by UPSERT_BATCH (500)
+      // On batch failure, retry record-by-record to isolate bad rows and continue
       let totalUploaded = 0;
+      let totalFailed = 0;
+      let totalAssigned = 0;
+
       for (let chunkStart = 0; chunkStart < contactInserts.length; chunkStart += UPLOAD_BATCH) {
         const chunk = contactInserts.slice(chunkStart, chunkStart + UPLOAD_BATCH);
         const chunkContacts: { id: string; phone_number: string }[] = [];
 
-        // Sub-batch upserts within the chunk
         for (let i = 0; i < chunk.length; i += UPSERT_BATCH) {
           const batch = chunk.slice(i, i + UPSERT_BATCH);
           const { data, error } = await supabase
             .from("contacts")
             .upsert(batch, { onConflict: "phone_number,org_id", ignoreDuplicates: false })
             .select("id, phone_number");
-          if (error) throw error;
-          chunkContacts.push(...(data ?? []));
+
+          if (error) {
+            // Batch failed — retry each record individually to isolate bad rows
+            for (const record of batch) {
+              const { data: single, error: singleErr } = await supabase
+                .from("contacts")
+                .upsert(record, { onConflict: "phone_number,org_id", ignoreDuplicates: false })
+                .select("id, phone_number")
+                .single();
+              if (singleErr) {
+                totalFailed++;
+              } else if (single) {
+                chunkContacts.push(single);
+              }
+            }
+          } else {
+            chunkContacts.push(...(data ?? []));
+          }
+
           totalUploaded += batch.length;
-          setUploadProgress({ done: totalUploaded, total: contactInserts.length });
+          setUploadProgress({ done: totalUploaded, total: contactInserts.length, failed: totalFailed });
         }
 
         // Assign this chunk's contacts to campaign
@@ -495,9 +515,22 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
           for (let i = 0; i < assignments.length; i += UPSERT_BATCH) {
             const batch = assignments.slice(i, i + UPSERT_BATCH);
             const { error: assignErr } = await supabase.from("campaign_contacts").insert(batch);
-            if (assignErr) throw assignErr;
+            if (assignErr) {
+              // Same fallback — retry individually
+              for (const row of batch) {
+                const { error: sErr } = await supabase.from("campaign_contacts").insert(row);
+                if (sErr) totalFailed++;
+                else totalAssigned++;
+              }
+            } else {
+              totalAssigned += batch.length;
+            }
           }
         }
+      }
+
+      if (totalAssigned === 0) {
+        throw new Error("No contacts could be uploaded. Check your CSV data.");
       }
 
       // 5. Update status to running and send
@@ -513,9 +546,10 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
           description: `Required: ₹${sendResult.required}, Current: ₹${sendResult.current_balance}. Please add ₹${sendResult.shortfall} to your wallet.`,
         });
       } else {
+        const failNote = totalFailed > 0 ? ` (${totalFailed} records failed to upload)` : "";
         toast({
           title: "Campaign launched!",
-          description: `Sending to ${totalUploaded.toLocaleString()} contacts.`,
+          description: `Sending to ${totalAssigned.toLocaleString()} contacts.${failNote}`,
         });
       }
 
@@ -762,7 +796,12 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Uploading contacts...</span>
-                      <span>{uploadProgress.done.toLocaleString()} / {uploadProgress.total.toLocaleString()}</span>
+                      <span>
+                        {uploadProgress.done.toLocaleString()} / {uploadProgress.total.toLocaleString()}
+                        {uploadProgress.failed > 0 && (
+                          <span className="text-destructive ml-2">({uploadProgress.failed} failed)</span>
+                        )}
+                      </span>
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                       <div
