@@ -117,6 +117,43 @@ serve(async (req) => {
       });
     }
 
+    // Fetch the template record to get name + language for the WhatsApp API
+    let templateName = "";
+    let templateLanguage = "en";
+    if (campaign.template_id) {
+      const { data: tpl } = await supabase
+        .from("templates")
+        .select("name, language")
+        .eq("id", campaign.template_id)
+        .single();
+      if (tpl) {
+        // Sanitize name the same way manage-templates does for Exotel
+        templateName = tpl.name.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+        templateLanguage = tpl.language || "en";
+      }
+    }
+
+    if (!templateName) {
+      await supabase.from("campaigns").update({ status: "failed" }).eq("id", campaign_id);
+      return new Response(JSON.stringify({ error: "Template not found for campaign" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Detect media type from template content markers
+    const tplContent = campaign.template_message || "";
+    let headerMediaType: "image" | "video" | "document" | null = null;
+    if (tplContent.startsWith("[Image Header]")) headerMediaType = "image";
+    else if (tplContent.startsWith("[Video Header]")) headerMediaType = "video";
+    else if (tplContent.startsWith("[Document Header]")) headerMediaType = "document";
+
+    // Extract variable numbers from template_message ({{1}}, {{2}}, etc.)
+    const varMatches = tplContent.match(/\{\{(\d+)\}\}/g);
+    const varNums = varMatches
+      ? [...new Set(varMatches)].map((v) => v.replace(/\D/g, "")).sort((a, b) => parseInt(a) - parseInt(b))
+      : [];
+
     // Resolve Exotel credentials (per-org or platform defaults)
     const creds = await getExotelCreds(supabase, orgId);
     const exotelUrl = `https://${creds.apiKey}:${creds.apiToken}@${creds.subdomain}/v2/accounts/${creds.accountSid}/messages`;
@@ -125,24 +162,22 @@ serve(async (req) => {
     let failCount = 0;
 
     for (const contact of contacts) {
-      // Personalize message using variable_mapping or legacy {{name}}
-      let message = campaign.template_message || "";
+      // Resolve variable values for this contact
       const mapping = campaign.variable_mapping as Record<string, string> | null;
+      const resolveField = (field: string): string => {
+        if (field === "name") return contact.name || "Customer";
+        if (field === "phone_number") return contact.phone_number || "";
+        if (field === "email") return (contact as any).email || "";
+        // Check custom_fields for any other column name
+        return (contact.custom_fields as Record<string, string>)?.[field] || "";
+      };
+
+      // Build personalized message for DB record
+      let message = tplContent;
       if (mapping) {
         for (const [varNum, field] of Object.entries(mapping)) {
-          let value = "";
-          if (field === "name") value = contact.name || "Customer";
-          else if (field === "phone_number") value = contact.phone_number || "";
-          else if (field.startsWith("custom_fields.")) {
-            const key = field.replace("custom_fields.", "");
-            value = (contact.custom_fields as Record<string, string>)?.[key] || "";
-          } else {
-            value = (contact as any)[field] || "";
-          }
-          message = message.replaceAll(`{{${varNum}}}`, value);
+          message = message.replaceAll(`{{${varNum}}}`, resolveField(field));
         }
-      } else {
-        message = message.replace(/\{\{name\}\}/g, contact.name || "Customer");
       }
 
       // Create message record with org_id
@@ -160,35 +195,33 @@ serve(async (req) => {
         .single();
 
       try {
-        // Build Exotel WhatsApp API payload
-        let content: Record<string, unknown>;
-        if (campaign.media_url) {
-          // Detect media type from template_message content markers
-          const tpl = campaign.template_message || "";
-          let mediaType: "image" | "video" | "document" = "image";
-          if (tpl.startsWith("[Video Header]")) mediaType = "video";
-          else if (tpl.startsWith("[Document Header]")) mediaType = "document";
+        // Build template components for WhatsApp API
+        const components: Record<string, unknown>[] = [];
 
-          const mediaPayload: Record<string, unknown> = { link: campaign.media_url };
-          if (mediaType === "document") {
-            mediaPayload.filename = campaign.media_url.split("/").pop() || "file";
-          }
-          if (mediaType !== "document") {
-            mediaPayload.caption = message;
-          }
-
-          content = {
-            recipient_type: "individual",
-            type: mediaType,
-            [mediaType]: mediaPayload,
-          };
-        } else {
-          content = {
-            recipient_type: "individual",
-            type: "text",
-            text: { preview_url: false, body: message },
-          };
+        // Header component (media)
+        if (headerMediaType && campaign.media_url) {
+          const headerParam: Record<string, unknown> = { type: headerMediaType };
+          headerParam[headerMediaType] = { link: campaign.media_url };
+          components.push({ type: "header", parameters: [headerParam] });
         }
+
+        // Body component (variable parameters)
+        if (varNums.length > 0 && mapping) {
+          const bodyParams = varNums.map((num) => ({
+            type: "text",
+            text: resolveField(mapping[num] || ""),
+          }));
+          components.push({ type: "body", parameters: bodyParams });
+        }
+
+        const content: Record<string, unknown> = {
+          type: "template",
+          template: {
+            name: templateName,
+            language: { code: templateLanguage, policy: "deterministic" },
+            ...(components.length > 0 ? { components } : {}),
+          },
+        };
 
         const payload = {
           whatsapp: {
@@ -202,6 +235,8 @@ serve(async (req) => {
           },
         };
 
+        console.log("Sending template message:", JSON.stringify(payload, null, 2));
+
         const exotelResponse = await fetch(exotelUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -209,6 +244,7 @@ serve(async (req) => {
         });
 
         const result = await exotelResponse.json();
+        console.log("Exotel response:", exotelResponse.status, JSON.stringify(result));
         const msgData = result?.response?.whatsapp?.messages?.[0];
 
         if (exotelResponse.ok && msgData?.status === "success") {
