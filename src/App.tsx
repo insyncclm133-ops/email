@@ -17,7 +17,7 @@ import Campaigns from "./pages/Campaigns";
 import CampaignDetail from "./pages/CampaignDetail";
 import Templates from "./pages/Templates";
 import Communications from "./pages/Communications";
-import Reports from "./pages/Reports";
+
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import Billing from "./pages/Billing";
@@ -47,7 +47,7 @@ const App = () => (
               <Route path="/campaigns/:id" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
               <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
               <Route path="/communications" element={<ProtectedRoute><Communications /></ProtectedRoute>} />
-              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+
               <Route path="/automations" element={<ProtectedRoute><Automations /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
