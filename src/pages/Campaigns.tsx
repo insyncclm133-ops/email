@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Play, Eye, ArrowLeft, ArrowRight, Upload, Download,
-  FileText, CheckCircle2, AlertCircle, Loader2, X,
+  FileText, AlertCircle, Loader2, X,
   Image as ImageIcon, Video, Rocket,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -496,36 +496,36 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
               />
             </div>
             <Separator />
-            {templates.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">
-                No approved templates. Create and submit a template first.
-              </p>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {templates.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelectedTemplate(t)}
-                    className={`rounded-lg border p-4 text-left transition-all ${
-                      selectedTemplate?.id === t.id
-                        ? "border-primary bg-primary/5 ring-1 ring-primary"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <p className="font-medium text-sm">{t.name}</p>
-                      <Badge variant="outline" className="text-[10px]">
-                        {t.category || "marketing"}
-                      </Badge>
-                    </div>
-                    <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">
-                      {t.content}
-                    </p>
-                    {selectedTemplate?.id === t.id && (
-                      <CheckCircle2 className="mt-2 h-4 w-4 text-primary" />
-                    )}
-                  </button>
-                ))}
+            <div>
+              <Label>Template</Label>
+              {templates.length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  No approved templates. Create and submit a template first.
+                </p>
+              ) : (
+                <Select
+                  value={selectedTemplate?.id || ""}
+                  onValueChange={(val) => {
+                    const t = templates.find((t) => t.id === val);
+                    setSelectedTemplate(t || null);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name} — {t.category || "marketing"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            {selectedTemplate && (
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <p className="text-xs text-muted-foreground whitespace-pre-wrap">{selectedTemplate.content}</p>
               </div>
             )}
           </CardContent>
