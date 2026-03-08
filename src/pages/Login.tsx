@@ -198,25 +198,47 @@ export default function Login() {
     <div className="flex min-h-screen">
       {/* ── Left panel ── */}
       <div className="relative hidden w-1/2 overflow-hidden lg:flex lg:flex-col lg:justify-between">
-        {/* Gradient background matching landing page */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/95 to-emerald-600" />
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1a12] via-[#0d2818] to-[#0a1e14]" />
 
-        {/* Mesh gradient orbs */}
+        {/* Layered color washes */}
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-white/10 blur-[100px]" />
-          <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-emerald-400/15 blur-[100px]" />
-          <div className="absolute top-1/2 left-1/3 h-64 w-64 rounded-full bg-white/5 blur-[80px]" />
+          <div className="absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-primary/30 blur-[150px]" />
+          <div className="absolute -bottom-40 -right-20 h-[450px] w-[450px] rounded-full bg-emerald-500/20 blur-[130px]" />
+          <div className="absolute top-1/3 right-1/4 h-72 w-72 rounded-full bg-teal-400/10 blur-[100px]" />
+          <div className="absolute bottom-1/4 left-1/4 h-56 w-56 rounded-full bg-emerald-300/8 blur-[90px]" />
         </div>
 
-        {/* Grid pattern */}
+        {/* Fine grid texture */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.05]"
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-            backgroundSize: "40px 40px",
+              "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
           }}
         />
+
+        {/* Diagonal lines texture */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,0.1) 35px, rgba(255,255,255,0.1) 36px)",
+          }}
+        />
+
+        {/* Noise grain overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.25]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E")`,
+            backgroundSize: "128px 128px",
+          }}
+        />
+
+        {/* Radial spotlight */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.06),transparent_60%)]" />
 
         <FloatingParticles />
 
