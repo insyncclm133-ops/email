@@ -161,17 +161,34 @@ serve(async (req) => {
 
       try {
         // Build Exotel WhatsApp API payload
-        const content: Record<string, unknown> = campaign.media_url
-          ? {
-              recipient_type: "individual",
-              type: "image",
-              image: { link: campaign.media_url, caption: message },
-            }
-          : {
-              recipient_type: "individual",
-              type: "text",
-              text: { preview_url: false, body: message },
-            };
+        let content: Record<string, unknown>;
+        if (campaign.media_url) {
+          // Detect media type from template_message content markers
+          const tpl = campaign.template_message || "";
+          let mediaType: "image" | "video" | "document" = "image";
+          if (tpl.startsWith("[Video Header]")) mediaType = "video";
+          else if (tpl.startsWith("[Document Header]")) mediaType = "document";
+
+          const mediaPayload: Record<string, unknown> = { link: campaign.media_url };
+          if (mediaType === "document") {
+            mediaPayload.filename = campaign.media_url.split("/").pop() || "file";
+          }
+          if (mediaType !== "document") {
+            mediaPayload.caption = message;
+          }
+
+          content = {
+            recipient_type: "individual",
+            type: mediaType,
+            [mediaType]: mediaPayload,
+          };
+        } else {
+          content = {
+            recipient_type: "individual",
+            type: "text",
+            text: { preview_url: false, body: message },
+          };
+        }
 
         const payload = {
           whatsapp: {

@@ -193,6 +193,8 @@ serve(async (req) => {
         contentText = "[Image Header]\n" + contentText;
       } else if (headerComp?.format === "VIDEO") {
         contentText = "[Video Header]\n" + contentText;
+      } else if (headerComp?.format === "DOCUMENT") {
+        contentText = "[Document Header]\n" + contentText;
       } else if (headerComp?.format === "TEXT" && headerComp?.text) {
         contentText = headerComp.text + "\n\n" + contentText;
       }

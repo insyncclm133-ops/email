@@ -15,8 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Play, Eye, ArrowLeft, ArrowRight, Upload, Download,
-  FileText, AlertCircle, Loader2, X,
-  Image as ImageIcon, Video, Rocket,
+  FileText, AlertCircle, Loader2, X, Rocket,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -67,6 +66,21 @@ function parseCsv(text: string): { headers: string[]; rows: CsvRow[] } {
   });
   return { headers, rows };
 }
+
+type MediaType = "image" | "video" | "document" | null;
+
+function detectMediaType(content: string): MediaType {
+  if (content.startsWith("[Image Header]")) return "image";
+  if (content.startsWith("[Video Header]")) return "video";
+  if (content.startsWith("[Document Header]")) return "document";
+  return null;
+}
+
+const mediaAcceptMap: Record<string, string> = {
+  image: "image/jpeg,image/png",
+  video: "video/mp4",
+  document: "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+};
 
 const statusColor: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -227,7 +241,11 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
     [selectedTemplate]
   );
 
-  const needsMedia = false;
+  const mediaType = useMemo(
+    () => (selectedTemplate ? detectMediaType(selectedTemplate.content || "") : null),
+    [selectedTemplate]
+  );
+  const needsMedia = mediaType !== null;
 
   // Fetch approved templates
   useEffect(() => {
@@ -442,7 +460,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
       case 1: return !!selectedTemplate;
       case 2: return csvRows.length > 0;
       case 3: return true;
-      case 4: return true;
+      case 4: return needsMedia ? !!mediaFile : true;
       case 5: return true;
       default: return false;
     }
@@ -508,6 +526,8 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                   onValueChange={(val) => {
                     const t = templates.find((t) => t.id === val);
                     setSelectedTemplate(t || null);
+                    setMediaFile(null);
+                    setMediaPreviewUrl(null);
                   }}
                 >
                   <SelectTrigger>
@@ -669,16 +689,18 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
         <Card>
           <CardHeader>
             <CardTitle>Attach Media</CardTitle>
-            <CardDescription>Upload the image or video for this campaign</CardDescription>
+            <CardDescription>
+              Upload the {mediaType} file required by this template
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button variant="outline" className="gap-2" onClick={() => mediaInputRef.current?.click()}>
-              <Upload className="h-4 w-4" /> Upload File
+              <Upload className="h-4 w-4" /> Upload {mediaType === "image" ? "Image" : mediaType === "video" ? "Video" : "Document"}
             </Button>
             <input
               ref={mediaInputRef}
               type="file"
-              accept="image/*,video/mp4,.pdf"
+              accept={mediaType ? mediaAcceptMap[mediaType] : ""}
               className="hidden"
               onChange={handleMediaUpload}
             />
