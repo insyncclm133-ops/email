@@ -15,6 +15,7 @@ import {
   Send,
   Globe,
   Clock,
+  Play,
   TrendingUp,
 } from "lucide-react";
 
@@ -374,10 +375,10 @@ export default function Landing() {
                 className="group text-base px-8 backdrop-blur-sm"
                 asChild
               >
-                <a href="#features">
-                  <Clock className="mr-2 h-4 w-4" />
-                  See How It Works
-                </a>
+                <Link to="/demo">
+                  <Play className="mr-2 h-4 w-4" />
+                  Watch Demo
+                </Link>
               </Button>
             </motion.div>
 

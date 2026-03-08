@@ -23,6 +23,7 @@ import Users from "./pages/Users";
 import Billing from "./pages/Billing";
 import Automations from "./pages/Automations";
 import ResetPassword from "./pages/ResetPassword";
+import Demo from "./pages/Demo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
           <OrgProvider>
             <Routes>
               <Route path="/" element={<Landing />} />
+              <Route path="/demo" element={<Demo />} />
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/create-org" element={<CreateOrg />} />
