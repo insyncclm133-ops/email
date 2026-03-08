@@ -29,7 +29,6 @@ interface Template {
   category: string | null;
   language: string | null;
   status: string | null;
-  media_url?: string | null;
 }
 
 interface CsvRow {
@@ -228,14 +227,14 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
     [selectedTemplate]
   );
 
-  const needsMedia = selectedTemplate?.media_url !== null && selectedTemplate?.media_url !== undefined;
+  const needsMedia = false;
 
   // Fetch approved templates
   useEffect(() => {
     if (!currentOrg) return;
     supabase
       .from("templates")
-      .select("id, name, content, category, language, status, media_url")
+      .select("id, name, content, category, language, status")
       .eq("org_id", currentOrg.id)
       .eq("status", "approved")
       .then(({ data }) => setTemplates((data as any) || []));
@@ -343,7 +342,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
 
     try {
       // 1. Upload media if needed
-      let mediaUrl = selectedTemplate.media_url || null;
+      let mediaUrl: string | null = null;
       if (mediaFile) {
         const ext = mediaFile.name.split(".").pop();
         const path = `${currentOrg.id}/${user.id}/${Date.now()}.${ext}`;
