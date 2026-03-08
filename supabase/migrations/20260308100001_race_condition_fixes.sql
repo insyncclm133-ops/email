@@ -52,14 +52,14 @@ create or replace function transition_campaign_status(
   _to_status text
 ) returns boolean as $$
 declare
-  _updated boolean;
+  _rows int;
 begin
   update campaigns
     set status = _to_status, updated_at = now()
     where id = _campaign_id and status = _from_status;
 
-  get diagnostics _updated = row_count;
-  return _updated > 0;
+  get diagnostics _rows = row_count;
+  return _rows > 0;
 end;
 $$ language plpgsql security definer;
 
