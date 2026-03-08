@@ -39,7 +39,7 @@ interface CsvError {
 
 // ─── Helpers ───
 
-const MAX_CONTACTS = 5000;
+const UPLOAD_BATCH = 5000;
 const UPSERT_BATCH = 500;
 
 function stripContentMarkers(content: string): string {
@@ -242,8 +242,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   const [csvRows, setCsvRows] = useState<CsvRow[]>([]);
   const [csvFileName, setCsvFileName] = useState("");
   const [csvErrors, setCsvErrors] = useState<CsvError[]>([]);
-  const [csvTotalParsed, setCsvTotalParsed] = useState(0);
-  const [csvWasCapped, setCsvWasCapped] = useState(false);
 
   // Variable mapping
   const [variableMapping, setVariableMapping] = useState<Record<string, string>>({});
@@ -252,8 +250,9 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
 
-  // Launching
+  // Launching + progress
   const [launching, setLaunching] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
 
   // Derived
   const templateVars = useMemo(
@@ -354,21 +353,9 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
         validRows.push(row);
       }
 
-      setCsvTotalParsed(rows.length);
       setCsvErrors(errors);
       setCsvHeaders(headers);
-
-      if (validRows.length > MAX_CONTACTS) {
-        setCsvWasCapped(true);
-        setCsvRows(validRows.slice(0, MAX_CONTACTS));
-        toast({
-          title: "CSV capped",
-          description: `Only the first ${MAX_CONTACTS.toLocaleString()} valid contacts will be used (${validRows.length.toLocaleString()} found).`,
-        });
-      } else {
-        setCsvWasCapped(false);
-        setCsvRows(validRows);
-      }
+      setCsvRows(validRows);
     });
   };
 
@@ -377,8 +364,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
     setCsvRows([]);
     setCsvFileName("");
     setCsvErrors([]);
-    setCsvTotalParsed(0);
-    setCsvWasCapped(false);
   };
 
   const downloadCsvTemplate = () => {
@@ -429,6 +414,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   const launch = async () => {
     if (!user || !currentOrg || !selectedTemplate) return;
     setLaunching(true);
+    setUploadProgress({ done: 0, total: csvRows.length });
 
     try {
       // 1. Upload media if needed
@@ -459,11 +445,11 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
         .single();
       if (campErr) throw campErr;
 
-      // 3. Upsert contacts in batches
+      // 3. Prepare contact inserts
+      const nameCol = csvHeaders.find((h) => h.toLowerCase() === "name");
+      const emailCol = csvHeaders.find((h) => h.toLowerCase().includes("email"));
       const contactInserts = csvRows.map((row) => {
         const phone = row[phoneColumn] || "";
-        const nameCol = csvHeaders.find((h) => h.toLowerCase() === "name");
-        const emailCol = csvHeaders.find((h) => h.toLowerCase().includes("email"));
         const customFields: Record<string, string> = {};
         for (const h of csvHeaders) {
           if (h === phoneColumn || h === nameCol || h === emailCol) continue;
@@ -480,28 +466,37 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
         };
       }).filter((c) => c.phone_number);
 
-      const allContacts: { id: string; phone_number: string }[] = [];
-      for (let i = 0; i < contactInserts.length; i += UPSERT_BATCH) {
-        const batch = contactInserts.slice(i, i + UPSERT_BATCH);
-        const { data, error } = await supabase
-          .from("contacts")
-          .upsert(batch, { onConflict: "phone_number,org_id", ignoreDuplicates: false })
-          .select("id, phone_number");
-        if (error) throw error;
-        allContacts.push(...(data ?? []));
-      }
+      // 4. Process in chunks of UPLOAD_BATCH (5000), each chunk sub-batched by UPSERT_BATCH (500)
+      let totalUploaded = 0;
+      for (let chunkStart = 0; chunkStart < contactInserts.length; chunkStart += UPLOAD_BATCH) {
+        const chunk = contactInserts.slice(chunkStart, chunkStart + UPLOAD_BATCH);
+        const chunkContacts: { id: string; phone_number: string }[] = [];
 
-      // 4. Assign contacts to campaign in batches
-      if (allContacts.length > 0) {
-        const assignments = allContacts.map((c) => ({
-          campaign_id: campaign.id,
-          contact_id: c.id,
-          org_id: currentOrg.id,
-        }));
-        for (let i = 0; i < assignments.length; i += UPSERT_BATCH) {
-          const batch = assignments.slice(i, i + UPSERT_BATCH);
-          const { error: assignErr } = await supabase.from("campaign_contacts").insert(batch);
-          if (assignErr) throw assignErr;
+        // Sub-batch upserts within the chunk
+        for (let i = 0; i < chunk.length; i += UPSERT_BATCH) {
+          const batch = chunk.slice(i, i + UPSERT_BATCH);
+          const { data, error } = await supabase
+            .from("contacts")
+            .upsert(batch, { onConflict: "phone_number,org_id", ignoreDuplicates: false })
+            .select("id, phone_number");
+          if (error) throw error;
+          chunkContacts.push(...(data ?? []));
+          totalUploaded += batch.length;
+          setUploadProgress({ done: totalUploaded, total: contactInserts.length });
+        }
+
+        // Assign this chunk's contacts to campaign
+        if (chunkContacts.length > 0) {
+          const assignments = chunkContacts.map((c) => ({
+            campaign_id: campaign.id,
+            contact_id: c.id,
+            org_id: currentOrg.id,
+          }));
+          for (let i = 0; i < assignments.length; i += UPSERT_BATCH) {
+            const batch = assignments.slice(i, i + UPSERT_BATCH);
+            const { error: assignErr } = await supabase.from("campaign_contacts").insert(batch);
+            if (assignErr) throw assignErr;
+          }
         }
       }
 
@@ -520,7 +515,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
       } else {
         toast({
           title: "Campaign launched!",
-          description: `Sending to ${allContacts.length.toLocaleString()} contacts.`,
+          description: `Sending to ${totalUploaded.toLocaleString()} contacts.`,
         });
       }
 
@@ -529,6 +524,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
       toast({ variant: "destructive", title: "Error", description: err.message });
     } finally {
       setLaunching(false);
+      setUploadProgress(null);
     }
   };
 
@@ -639,12 +635,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                 </div>
               )}
 
-              {csvWasCapped && (
-                <p className="text-xs text-amber-600">
-                  CSV had more than {MAX_CONTACTS.toLocaleString()} valid contacts. Only the first {MAX_CONTACTS.toLocaleString()} will be used.
-                </p>
-              )}
-
               {csvErrors.length > 0 && (
                 <details className="text-xs">
                   <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
@@ -747,7 +737,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
           {/* Launch Bar */}
           {selectedTemplate && csvRows.length > 0 && (
             <Card>
-              <CardContent className="py-4">
+              <CardContent className="py-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex gap-6 text-sm">
                     <div>
@@ -765,9 +755,23 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                   </div>
                   <Button onClick={launch} disabled={!canLaunch || launching} className="gap-2 px-6">
                     {launching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-                    Launch Campaign
+                    {launching ? "Uploading..." : "Launch Campaign"}
                   </Button>
                 </div>
+                {uploadProgress && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Uploading contacts...</span>
+                      <span>{uploadProgress.done.toLocaleString()} / {uploadProgress.total.toLocaleString()}</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all duration-300"
+                        style={{ width: `${Math.round((uploadProgress.done / uploadProgress.total) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
