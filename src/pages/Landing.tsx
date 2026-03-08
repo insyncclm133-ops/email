@@ -300,7 +300,7 @@ export default function Landing() {
 
         <motion.div
           style={{ y: heroY, opacity: heroOpacity }}
-          className="relative mx-auto max-w-6xl px-4 pb-20 pt-20 sm:px-6 sm:pb-28 sm:pt-28 lg:pb-36 lg:pt-36"
+          className="relative mx-auto max-w-6xl px-4 pb-12 pt-20 sm:px-6 sm:pb-16 sm:pt-28 lg:pt-36"
         >
           <div className="mx-auto max-w-4xl text-center">
             {/* Badge */}
@@ -399,34 +399,35 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          {/* Embedded product demo */}
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.7 }}
-            className="mx-auto mt-16 max-w-5xl"
-          >
-            <div className="relative rounded-2xl border border-border/60 bg-black shadow-2xl shadow-primary/10 overflow-hidden">
-              {/* Browser-style top bar */}
-              <div className="flex items-center gap-2 border-b border-white/10 bg-black/80 px-4 py-2.5">
-                <div className="flex gap-1.5">
-                  <div className="h-3 w-3 rounded-full bg-red-500/80" />
-                  <div className="h-3 w-3 rounded-full bg-yellow-500/80" />
-                  <div className="h-3 w-3 rounded-full bg-green-500/80" />
-                </div>
-                <div className="ml-3 flex-1 rounded-md bg-white/10 px-3 py-1 text-[11px] text-white/40">
-                  app.insync.live/demo
-                </div>
+        </motion.div>
+
+        {/* Embedded product demo — outside parallax wrapper so it doesn't fade */}
+        <motion.div
+          initial={{ opacity: 0, y: 50, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.7, delay: 0.7 }}
+          className="relative mx-auto max-w-5xl px-4 pb-20 sm:px-6 sm:pb-28"
+        >
+          <div className="relative rounded-2xl border border-border/60 bg-black shadow-2xl shadow-primary/10 overflow-hidden">
+            {/* Browser-style top bar */}
+            <div className="flex items-center gap-2 border-b border-white/10 bg-black/80 px-4 py-2.5">
+              <div className="flex gap-1.5">
+                <div className="h-3 w-3 rounded-full bg-red-500/80" />
+                <div className="h-3 w-3 rounded-full bg-yellow-500/80" />
+                <div className="h-3 w-3 rounded-full bg-green-500/80" />
               </div>
-              <iframe
-                src="/demo"
-                title="In-Sync Product Demo"
-                className="w-full border-0"
-                style={{ height: "min(70vh, 540px)" }}
-                loading="eager"
-              />
+              <div className="ml-3 flex-1 rounded-md bg-white/10 px-3 py-1 text-[11px] text-white/40">
+                app.insync.live/demo
+              </div>
             </div>
-          </motion.div>
+            <iframe
+              src="/demo"
+              title="In-Sync Product Demo"
+              className="w-full border-0"
+              style={{ height: "min(70vh, 540px)" }}
+              loading="eager"
+            />
+          </div>
         </motion.div>
       </section>
 
