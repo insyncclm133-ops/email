@@ -535,9 +535,13 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
 
       // 5. Update status to running and send
       await supabase.from("campaigns").update({ status: "running" }).eq("id", campaign.id);
-      const { data: sendResult } = await supabase.functions.invoke("send-campaign", {
+      const { data: sendResult, error: invokeErr } = await supabase.functions.invoke("send-campaign", {
         body: { campaign_id: campaign.id },
       });
+
+      if (invokeErr) {
+        throw new Error(invokeErr.message || "Failed to start campaign send");
+      }
 
       if (sendResult?.error === "Insufficient balance") {
         toast({

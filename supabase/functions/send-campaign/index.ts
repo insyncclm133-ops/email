@@ -191,15 +191,6 @@ serve(async (req) => {
       });
     }
 
-    // ── On first call with no contacts at all, fail early ──
-    if (offset === 0 && contacts.length === 0) {
-      await supabase.from("campaigns").update({ status: "failed" }).eq("id", campaign_id);
-      return new Response(JSON.stringify({ error: "No contacts assigned" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // ── Resolve Exotel credentials ──
     const creds = await getExotelCreds(supabase, orgId);
     const exotelUrl = `https://${creds.apiKey}:${creds.apiToken}@${creds.subdomain}/v2/accounts/${creds.accountSid}/messages`;
@@ -229,7 +220,7 @@ serve(async (req) => {
       }
 
       // Create message record
-      const { data: msgRecord } = await supabase
+      const { data: msgRecord, error: msgInsertErr } = await supabase
         .from("messages")
         .insert({
           campaign_id,
@@ -241,6 +232,12 @@ serve(async (req) => {
         })
         .select("id")
         .single();
+
+      if (msgInsertErr || !msgRecord) {
+        console.error("Failed to create message record:", msgInsertErr?.message);
+        batchFailed++;
+        continue;
+      }
 
       try {
         // Build template components for WhatsApp API
@@ -296,7 +293,7 @@ serve(async (req) => {
               exotel_message_id: msgData?.data?.sid || null,
               sent_at: new Date().toISOString(),
             })
-            .eq("id", msgRecord!.id);
+            .eq("id", msgRecord.id);
 
           // Debit wallet
           const gstAmount = Math.round(ratePerMsg * GST_RATE * 100) / 100;
@@ -330,7 +327,7 @@ serve(async (req) => {
               status: "failed",
               error_message: JSON.stringify(result).slice(0, 500),
             })
-            .eq("id", msgRecord!.id);
+            .eq("id", msgRecord.id);
           batchFailed++;
         }
       } catch (err) {
@@ -340,7 +337,7 @@ serve(async (req) => {
             status: "failed",
             error_message: (err as Error).message,
           })
-          .eq("id", msgRecord!.id);
+          .eq("id", msgRecord.id);
         batchFailed++;
       }
     }
