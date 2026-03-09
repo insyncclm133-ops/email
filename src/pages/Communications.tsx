@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
+import { decryptNestedContacts } from "@/lib/decryptPii";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -227,7 +228,9 @@ export default function Communications() {
       .select("*, contacts(name, phone_number)")
       .eq("org_id", currentOrg.id)
       .order("last_message_at", { ascending: false }) as any;
-    setConversations((data as any) ?? []);
+    const raw = (data as any) ?? [];
+    const decrypted = await decryptNestedContacts(raw, currentOrg.id);
+    setConversations(decrypted);
     setLoadingConvos(false);
   }, [currentOrg]);
 

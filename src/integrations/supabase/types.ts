@@ -1162,6 +1162,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      decrypt_contacts_batch: {
+        Args: {
+          p_org_id: string
+          p_contact_ids: string[]
+        }
+        Returns: {
+          contact_id: string
+          decrypted_name: string | null
+          decrypted_email: string | null
+          decrypted_custom_fields: string | null
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "platform_admin"

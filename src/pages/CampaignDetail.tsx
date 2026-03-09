@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, StopCircle, Loader2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { decryptContacts, decryptNestedContacts } from "@/lib/decryptPii";
 
 function stripContentMarkers(text: string): string {
   return text.replace(/^\[(Image|Video|Document) Header\]\n?/, "").trim();
@@ -37,11 +38,14 @@ export default function CampaignDetail() {
       supabase.from("messages").select("*, contacts(name, phone_number)").eq("campaign_id", id).eq("org_id", currentOrg.id).order("created_at", { ascending: false }).limit(200),
     ]);
     setCampaign(campRes.data);
-    setAllContacts(contactsRes.data ?? []);
+    const rawContacts = contactsRes.data ?? [];
+    const decContacts = await decryptContacts(rawContacts as any, currentOrg.id);
+    setAllContacts(decContacts as any);
     const ids = new Set((assignedRes.data ?? []).map((a) => a.contact_id));
     setAssignedIds(ids);
     setSelectedIds(new Set(ids));
-    const msgs = (msgsRes.data as any) ?? [];
+    const rawMsgs = (msgsRes.data as any) ?? [];
+    const msgs = await decryptNestedContacts(rawMsgs, currentOrg.id);
     setMessages(msgs);
 
     // Count by status

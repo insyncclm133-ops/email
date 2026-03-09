@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Upload, Plus, Trash2, Search, Megaphone, Tag, Filter, X, Save, FolderOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { decryptContacts } from "@/lib/decryptPii";
 
 interface Contact {
   id: string;
@@ -65,7 +66,9 @@ export default function Contacts() {
       .select("*")
       .eq("org_id", currentOrg.id)
       .order("created_at", { ascending: false });
-    setContacts((data as any) ?? []);
+    const raw = (data as any) ?? [];
+    const decrypted = await decryptContacts(raw, currentOrg.id);
+    setContacts(decrypted);
     setLoading(false);
   }, [currentOrg]);
 
