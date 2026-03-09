@@ -12,6 +12,14 @@ export interface OrgKpis {
   readRatePrev: number;
   totalContacts: number;
   totalContactsPrev: number;
+  openConversations: number;
+  resolvedConversations: number;
+  unassignedConversations: number;
+  totalConversations: number;
+  activeChatbots: number;
+  totalChatbots: number;
+  messagesFailed: number;
+  contactsThisMonth: number;
 }
 
 export interface WeeklyChartPoint {
@@ -37,27 +45,68 @@ export interface MessageMixSlice {
   value: number;
 }
 
+export interface RecentConversation {
+  id: string;
+  phone_number: string;
+  contact_name: string | null;
+  last_message_preview: string | null;
+  last_message_at: string;
+  status: string;
+  unread_count: number;
+}
+
+export interface DpdpStatus {
+  enabled: boolean;
+  encryptedContacts: number;
+  totalContacts: number;
+  pendingRequests: number;
+  activeConsents: number;
+}
+
+export interface MessageFunnel {
+  sent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+}
+
 export interface OrgDashboardData {
   kpis: OrgKpis;
   weeklyChart: WeeklyChartPoint[];
   recentCampaigns: RecentCampaign[];
   messageMix: MessageMixSlice[];
+  recentConversations: RecentConversation[];
+  dpdp: DpdpStatus;
+  funnel: MessageFunnel;
 }
 
+const EMPTY_KPIS: OrgKpis = {
+  messagesSentMTD: 0,
+  messagesPrevMonth: 0,
+  deliveryRate: 0,
+  deliveryRatePrev: 0,
+  readRate: 0,
+  readRatePrev: 0,
+  totalContacts: 0,
+  totalContactsPrev: 0,
+  openConversations: 0,
+  resolvedConversations: 0,
+  unassignedConversations: 0,
+  totalConversations: 0,
+  activeChatbots: 0,
+  totalChatbots: 0,
+  messagesFailed: 0,
+  contactsThisMonth: 0,
+};
+
 const EMPTY_DATA: OrgDashboardData = {
-  kpis: {
-    messagesSentMTD: 0,
-    messagesPrevMonth: 0,
-    deliveryRate: 0,
-    deliveryRatePrev: 0,
-    readRate: 0,
-    readRatePrev: 0,
-    totalContacts: 0,
-    totalContactsPrev: 0,
-  },
+  kpis: EMPTY_KPIS,
   weeklyChart: [],
   recentCampaigns: [],
   messageMix: [],
+  recentConversations: [],
+  dpdp: { enabled: false, encryptedContacts: 0, totalContacts: 0, pendingRequests: 0, activeConsents: 0 },
+  funnel: { sent: 0, delivered: 0, read: 0, failed: 0 },
 };
 
 export function useOrgDashboard() {
@@ -80,34 +129,56 @@ export function useOrgDashboard() {
       const monthStart = startOfMonth(now).toISOString();
       const prevMonthStart = startOfMonth(subMonths(now, 1)).toISOString();
       const prevMonthEnd = startOfMonth(now).toISOString();
-      const sevenDaysAgo = subDays(now, 6);
 
-      const [contactsRes, campaignsRes, messagesRes, messagesPrevRes, templatesRes] =
-        await Promise.all([
-          supabase
-            .from("contacts")
-            .select("id, created_at", { count: "exact" })
-            .eq("org_id", orgId),
-          supabase
-            .from("campaigns")
-            .select("id, name, status, template_id, created_at")
-            .eq("org_id", orgId)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("messages")
-            .select("id, status, created_at, read_at, campaign_id")
-            .eq("org_id", orgId),
-          supabase
-            .from("messages")
-            .select("id, status, read_at")
-            .eq("org_id", orgId)
-            .gte("created_at", prevMonthStart)
-            .lt("created_at", prevMonthEnd),
-          supabase
-            .from("templates")
-            .select("id, category")
-            .eq("org_id", orgId),
-        ]);
+      const [
+        contactsRes,
+        campaignsRes,
+        messagesRes,
+        messagesPrevRes,
+        templatesRes,
+        conversationsRes,
+        chatbotsRes,
+        orgRes,
+      ] = await Promise.all([
+        supabase
+          .from("contacts")
+          .select("id, created_at, pii_encrypted", { count: "exact" })
+          .eq("org_id", orgId),
+        supabase
+          .from("campaigns")
+          .select("id, name, status, template_id, created_at")
+          .eq("org_id", orgId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("messages")
+          .select("id, status, created_at, read_at, campaign_id")
+          .eq("org_id", orgId),
+        supabase
+          .from("messages")
+          .select("id, status, read_at")
+          .eq("org_id", orgId)
+          .gte("created_at", prevMonthStart)
+          .lt("created_at", prevMonthEnd),
+        supabase
+          .from("templates")
+          .select("id, category")
+          .eq("org_id", orgId),
+        supabase
+          .from("conversations")
+          .select("id, phone_number, contact_id, last_message_preview, last_message_at, status, unread_count, assigned_to, contacts(name)")
+          .eq("org_id", orgId)
+          .order("last_message_at", { ascending: false })
+          .limit(100),
+        supabase
+          .from("chatbot_flows")
+          .select("id, status")
+          .eq("org_id", orgId),
+        supabase
+          .from("organizations")
+          .select("dpdp_enabled")
+          .eq("id", orgId)
+          .single(),
+      ]);
 
       if (signal.cancelled) return;
 
@@ -116,7 +187,10 @@ export function useOrgDashboard() {
       const messages = messagesRes.data ?? [];
       const messagesPrev = messagesPrevRes.data ?? [];
       const templates = templatesRes.data ?? [];
+      const conversations = conversationsRes.data ?? [];
+      const chatbots = chatbotsRes.data ?? [];
 
+      // KPIs
       const currentMonthMsgs = messages.filter((m) => m.created_at >= monthStart);
       const messagesSentMTD = currentMonthMsgs.length;
       const messagesPrevMonth = messagesPrev.length;
@@ -148,6 +222,15 @@ export function useOrgDashboard() {
       const totalContactsPrev = contacts.filter(
         (c) => c.created_at < monthStart
       ).length;
+      const contactsThisMonth = totalContacts - totalContactsPrev;
+
+      // Conversations
+      const openConversations = conversations.filter((c) => c.status === "open").length;
+      const resolvedConversations = conversations.filter((c) => c.status === "resolved" || c.status === "closed").length;
+      const unassignedConversations = conversations.filter((c) => c.status === "open" && !c.assigned_to).length;
+
+      // Chatbots
+      const activeChatbots = chatbots.filter((b) => b.status === "active").length;
 
       const kpis: OrgKpis = {
         messagesSentMTD,
@@ -158,6 +241,22 @@ export function useOrgDashboard() {
         readRatePrev,
         totalContacts,
         totalContactsPrev,
+        openConversations,
+        resolvedConversations,
+        unassignedConversations,
+        totalConversations: conversations.length,
+        activeChatbots,
+        totalChatbots: chatbots.length,
+        messagesFailed: failed,
+        contactsThisMonth,
+      };
+
+      // Funnel
+      const funnel: MessageFunnel = {
+        sent: messages.length,
+        delivered,
+        read: readCount,
+        failed,
       };
 
       // Weekly Chart
@@ -217,8 +316,43 @@ export function useOrgDashboard() {
         .map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }))
         .sort((a, b) => b.value - a.value);
 
+      // Recent conversations
+      const recentConversations: RecentConversation[] = conversations.slice(0, 8).map((c: any) => ({
+        id: c.id,
+        phone_number: c.phone_number,
+        contact_name: c.contacts?.name || null,
+        last_message_preview: c.last_message_preview,
+        last_message_at: c.last_message_at,
+        status: c.status,
+        unread_count: c.unread_count || 0,
+      }));
+
+      // DPDP
+      const encryptedContacts = contacts.filter((c: any) => c.pii_encrypted === true).length;
+      const dpdpEnabled = orgRes.data?.dpdp_enabled || false;
+
+      // Fetch DPDP request counts if enabled
+      let pendingRequests = 0;
+      let activeConsents = 0;
+      if (dpdpEnabled) {
+        const [reqRes, consentRes] = await Promise.all([
+          supabase.from("data_requests").select("*", { count: "exact", head: true }).eq("org_id", orgId).eq("status", "pending"),
+          supabase.from("consent_records").select("*", { count: "exact", head: true }).eq("org_id", orgId).is("withdrawn_at", null),
+        ]);
+        pendingRequests = reqRes.count ?? 0;
+        activeConsents = consentRes.count ?? 0;
+      }
+
+      const dpdp: DpdpStatus = {
+        enabled: dpdpEnabled,
+        encryptedContacts,
+        totalContacts,
+        pendingRequests,
+        activeConsents,
+      };
+
       if (signal.cancelled) return;
-      setData({ kpis, weeklyChart, recentCampaigns, messageMix });
+      setData({ kpis, weeklyChart, recentCampaigns, messageMix, recentConversations, dpdp, funnel });
     } catch (err) {
       console.error("Org dashboard fetch error:", err);
       if (!signal.cancelled) setData(EMPTY_DATA);
