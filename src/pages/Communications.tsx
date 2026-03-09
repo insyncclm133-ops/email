@@ -12,6 +12,18 @@ import { useToast } from "@/hooks/use-toast";
 import { AiInsights } from "@/components/AiInsights";
 import { cn } from "@/lib/utils";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Search,
   Send,
   Bot,
@@ -28,6 +40,8 @@ import {
   Plus,
   Trash2,
   Type,
+  Zap,
+  Settings2,
 } from "lucide-react";
 
 interface Conversation {
@@ -41,7 +55,19 @@ interface Conversation {
   unread_count: number;
   status: string;
   ai_enabled: boolean;
+  assigned_to: string | null;
   contacts: { name: string | null; phone_number: string } | null;
+}
+
+interface ConvoLabel {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface OrgMember {
+  user_id: string;
+  users: { email: string } | null;
 }
 
 interface Message {
@@ -91,6 +117,19 @@ export default function Communications() {
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Labels & assignment
+  const [labels, setLabels] = useState<ConvoLabel[]>([]);
+  const [convoLabels, setConvoLabels] = useState<Record<string, string[]>>({}); // convoId -> labelId[]
+  const [orgMembers, setOrgMembers] = useState<OrgMember[]>([]);
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "resolved">("all");
+
+  // Canned responses
+  const [cannedResponses, setCannedResponses] = useState<{ id: string; title: string; content: string; shortcut: string | null }[]>([]);
+  const [showCanned, setShowCanned] = useState(false);
+  const [cannedFilter, setCannedFilter] = useState("");
+  const [showCannedManager, setShowCannedManager] = useState(false);
+  const [newCanned, setNewCanned] = useState({ title: "", content: "", shortcut: "" });
+
   // Interactive message state
   const [replyMode, setReplyMode] = useState<"text" | "buttons" | "list">("text");
   const [replyButtons, setReplyButtons] = useState<{ id: string; title: string }[]>([
@@ -104,6 +143,76 @@ export default function Communications() {
   const activeConvo = conversations.find((c) => c.id === activeId) || null;
   const window24h = replyWindowRemaining(activeConvo?.last_inbound_at || null);
 
+  // Fetch labels, members, canned responses
+  useEffect(() => {
+    if (!currentOrg) return;
+    supabase
+      .from("canned_responses")
+      .select("id, title, content, shortcut")
+      .eq("org_id", currentOrg.id)
+      .order("title")
+      .then(({ data }) => setCannedResponses(data ?? []));
+    supabase
+      .from("conversation_labels")
+      .select("id, name, color")
+      .eq("org_id", currentOrg.id)
+      .order("name")
+      .then(({ data }) => setLabels(data ?? []));
+    supabase
+      .from("org_memberships")
+      .select("user_id, users:user_id(email)")
+      .eq("org_id", currentOrg.id)
+      .then(({ data }) => setOrgMembers((data as any) ?? []));
+  }, [currentOrg, showCannedManager]);
+
+  const filteredCanned = cannedResponses.filter((c) => {
+    if (!cannedFilter) return true;
+    const q = cannedFilter.toLowerCase();
+    return c.title.toLowerCase().includes(q) || c.content.toLowerCase().includes(q) || c.shortcut?.toLowerCase().includes(q);
+  });
+
+  const insertCanned = (content: string) => {
+    setReplyText((prev) => prev.replace(/\/\S*$/, "") + content);
+    setShowCanned(false);
+    setCannedFilter("");
+  };
+
+  const saveCannedResponse = async () => {
+    if (!currentOrg || !newCanned.title.trim() || !newCanned.content.trim()) return;
+    await supabase.from("canned_responses").insert({
+      org_id: currentOrg.id,
+      title: newCanned.title.trim(),
+      content: newCanned.content.trim(),
+      shortcut: newCanned.shortcut.trim() || null,
+      created_by: user?.id,
+    });
+    setNewCanned({ title: "", content: "", shortcut: "" });
+    // Refresh
+    const { data } = await supabase.from("canned_responses").select("id, title, content, shortcut").eq("org_id", currentOrg.id).order("title");
+    setCannedResponses(data ?? []);
+  };
+
+  const deleteCannedResponse = async (id: string) => {
+    await supabase.from("canned_responses").delete().eq("id", id);
+    setCannedResponses((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const assignConversation = async (convoId: string, userId: string | null) => {
+    await supabase.from("conversations").update({ assigned_to: userId }).eq("id", convoId);
+    setConversations((prev) => prev.map((c) => (c.id === convoId ? { ...c, assigned_to: userId } : c)));
+  };
+
+  const toggleResolved = async (convoId: string) => {
+    const convo = conversations.find((c) => c.id === convoId);
+    if (!convo) return;
+    const newStatus = convo.status === "resolved" ? "open" : "resolved";
+    await supabase.from("conversations").update({
+      status: newStatus,
+      ...(newStatus === "resolved" ? { resolved_at: new Date().toISOString() } : { resolved_at: null }),
+    }).eq("id", convoId);
+    setConversations((prev) => prev.map((c) => (c.id === convoId ? { ...c, status: newStatus } : c)));
+  };
+
   // Fetch conversations
   const fetchConversations = useCallback(async () => {
     if (!currentOrg) return;
@@ -111,7 +220,7 @@ export default function Communications() {
       .from("conversations")
       .select("*, contacts(name, phone_number)")
       .eq("org_id", currentOrg.id)
-      .order("last_message_at", { ascending: false });
+      .order("last_message_at", { ascending: false }) as any;
     setConversations((data as any) ?? []);
     setLoadingConvos(false);
   }, [currentOrg]);
@@ -242,6 +351,8 @@ export default function Communications() {
   };
 
   const filteredConvos = conversations.filter((c) => {
+    if (statusFilter === "open" && c.status !== "open") return false;
+    if (statusFilter === "resolved" && c.status !== "resolved") return false;
     if (!search) return true;
     const s = search.toLowerCase();
     return (
@@ -256,7 +367,7 @@ export default function Communications() {
       <div className="flex h-[calc(100vh-6rem)] overflow-hidden rounded-lg border border-border bg-background">
         {/* ── Left: Conversation List ── */}
         <div className="flex w-80 flex-col border-r border-border">
-          <div className="border-b border-border p-3">
+          <div className="border-b border-border p-3 space-y-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -265,6 +376,13 @@ export default function Communications() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
               />
+            </div>
+            <div className="flex gap-1">
+              {(["all", "open", "resolved"] as const).map((s) => (
+                <Button key={s} size="sm" variant={statusFilter === s ? "default" : "ghost"} className="h-6 px-2 text-xs capitalize" onClick={() => setStatusFilter(s)}>
+                  {s}
+                </Button>
+              ))}
             </div>
           </div>
 
@@ -334,13 +452,33 @@ export default function Communications() {
                   <p className="text-xs text-muted-foreground">{activeConvo.phone_number}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className={cn("text-xs", window24h.expired ? "text-destructive" : "text-muted-foreground")}>
                     {window24h.label}
                   </span>
                 </div>
+                <select
+                  value={activeConvo.assigned_to || ""}
+                  onChange={(e) => assignConversation(activeConvo.id, e.target.value || null)}
+                  className="h-7 rounded-md border border-input bg-background px-2 text-xs"
+                >
+                  <option value="">Unassigned</option>
+                  {orgMembers.map((m) => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {(m.users as any)?.email?.split("@")[0] || m.user_id.slice(0, 8)}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  size="sm"
+                  variant={activeConvo.status === "resolved" ? "outline" : "default"}
+                  className="h-7 text-xs"
+                  onClick={() => toggleResolved(activeConvo.id)}
+                >
+                  {activeConvo.status === "resolved" ? "Reopen" : "Resolve"}
+                </Button>
                 <div className="flex items-center gap-2">
                   <Bot className="h-4 w-4 text-muted-foreground" />
                   <Switch
@@ -486,16 +624,95 @@ export default function Communications() {
                     </Button>
                   </div>
 
+                  {/* Canned responses popover */}
+                  {showCanned && cannedResponses.length > 0 && (
+                    <div className="rounded-md border border-border bg-background shadow-lg max-h-48 overflow-y-auto">
+                      <div className="p-1.5">
+                        <Input
+                          value={cannedFilter}
+                          onChange={(e) => setCannedFilter(e.target.value)}
+                          placeholder="Search saved replies..."
+                          className="h-7 text-xs mb-1"
+                          autoFocus
+                        />
+                      </div>
+                      {filteredCanned.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => insertCanned(c.content)}
+                          className="w-full text-left px-3 py-1.5 hover:bg-accent text-sm border-t border-border/50"
+                        >
+                          <span className="font-medium">{c.title}</span>
+                          {c.shortcut && <span className="ml-2 text-xs text-muted-foreground">/{c.shortcut}</span>}
+                          <p className="text-xs text-muted-foreground truncate">{c.content}</p>
+                        </button>
+                      ))}
+                      {filteredCanned.length === 0 && (
+                        <p className="px-3 py-2 text-xs text-muted-foreground">No matching replies</p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Message body (always shown) */}
                   <div className="flex items-end gap-2">
                     <Textarea
                       value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      onKeyDown={replyMode === "text" ? handleKeyDown : undefined}
-                      placeholder={replyMode === "text" ? "Type a message..." : "Message body..."}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setReplyText(val);
+                        // Show canned responses when typing /
+                        if (val.endsWith("/") || /\/\S+$/.test(val)) {
+                          const match = val.match(/\/(\S*)$/);
+                          setShowCanned(true);
+                          setCannedFilter(match?.[1] || "");
+                        } else {
+                          setShowCanned(false);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (showCanned && e.key === "Escape") {
+                          setShowCanned(false);
+                          return;
+                        }
+                        if (replyMode === "text") handleKeyDown(e);
+                      }}
+                      placeholder={replyMode === "text" ? 'Type a message... (/ for quick replies)' : "Message body..."}
                       className="min-h-[40px] max-h-[120px] resize-none"
                       rows={1}
                     />
+                    <Popover open={showCannedManager} onOpenChange={setShowCannedManager}>
+                      <PopoverTrigger asChild>
+                        <Button size="icon" variant="ghost" className="shrink-0" title="Manage saved replies">
+                          <Zap className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 max-h-96 overflow-y-auto" align="end">
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium">Saved Replies</p>
+                          {cannedResponses.map((c) => (
+                            <div key={c.id} className="flex items-start justify-between gap-2 text-sm border-b border-border/50 pb-2">
+                              <div className="min-w-0">
+                                <p className="font-medium">{c.title} {c.shortcut && <span className="text-muted-foreground font-normal">/{c.shortcut}</span>}</p>
+                                <p className="text-xs text-muted-foreground truncate">{c.content}</p>
+                              </div>
+                              <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => deleteCannedResponse(c.id)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                          <div className="space-y-1.5 border-t border-border pt-2">
+                            <Input value={newCanned.title} onChange={(e) => setNewCanned((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-7 text-xs" />
+                            <Textarea value={newCanned.content} onChange={(e) => setNewCanned((p) => ({ ...p, content: e.target.value }))} placeholder="Reply content" className="text-xs min-h-[50px]" rows={2} />
+                            <div className="flex gap-1.5">
+                              <Input value={newCanned.shortcut} onChange={(e) => setNewCanned((p) => ({ ...p, shortcut: e.target.value }))} placeholder="Shortcut (optional)" className="h-7 text-xs" />
+                              <Button size="sm" className="h-7 shrink-0" onClick={saveCannedResponse} disabled={!newCanned.title.trim() || !newCanned.content.trim()}>
+                                <Plus className="h-3 w-3 mr-1" /> Add
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                     <Button
                       size="icon"
                       onClick={sendReply}
