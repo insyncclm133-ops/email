@@ -223,38 +223,56 @@ ${topErrors.length > 0 ? `- Top error messages: ${topErrors.map(([e, c]) => `"${
 Be concise, specific with numbers. Under 150 words. No emojis.`;
     }
 
-    // ── INBOX INSIGHTS ──
+    // ── INBOX INSIGHTS or AI SUGGESTIONS ──
     else if (type === "inbox") {
-      const [convosRes, recentMsgsRes] = await Promise.all([
-        supabase.from("conversations").select("id, unread_count, ai_enabled, status, last_inbound_at")
-          .eq("org_id", org_id),
-        supabase.from("messages").select("content, direction, conversation_id, created_at")
-          .eq("org_id", org_id).eq("direction", "inbound")
-          .order("created_at", { ascending: false }).limit(50),
-      ]);
+      // Check if this is a suggestion request
+      if (context?.generate_suggestions) {
+        const recentMsgs = context.recent_messages || [];
+        const contactName = context.contact_name || "Customer";
 
-      const convos = convosRes.data ?? [];
-      const recentInbound = recentMsgsRes.data ?? [];
+        dataContext = `
+CONVERSATION WITH ${contactName}:
+${recentMsgs.map((m: any) => `${m.role}: ${m.content}`).join("\n")}
+`;
 
-      const openConvos = convos.filter((c: any) => c.status === "open").length;
-      const closedConvos = convos.filter((c: any) => c.status === "closed").length;
-      const unreadCount = convos.reduce((s: number, c: any) => s + (c.unread_count || 0), 0);
-      const aiEnabled = convos.filter((c: any) => c.ai_enabled).length;
+        systemPrompt = `You are a customer support agent for a WhatsApp Business account. Based on the conversation above, suggest 3 short reply options the agent could send next.
 
-      // Expired windows
-      const now = Date.now();
-      const expiredWindows = convos.filter((c: any) => {
-        if (!c.last_inbound_at) return true;
-        return now - new Date(c.last_inbound_at).getTime() > 24 * 60 * 60 * 1000;
-      }).length;
+Rules:
+- Each suggestion should be 1-2 sentences max
+- Be helpful, professional, and friendly
+- Vary the tone: one direct answer, one empathetic, one proactive
+- Format as a simple bulleted list with "-" prefix
+- No emojis. Keep each under 150 characters.`;
+      } else {
+        // Standard inbox insights
+        const [convosRes, recentMsgsRes] = await Promise.all([
+          supabase.from("conversations").select("id, unread_count, ai_enabled, status, last_inbound_at")
+            .eq("org_id", org_id),
+          supabase.from("messages").select("content, direction, conversation_id, created_at")
+            .eq("org_id", org_id).eq("direction", "inbound")
+            .order("created_at", { ascending: false }).limit(50),
+        ]);
 
-      // Sample recent messages for topic analysis
-      const sampleMessages = recentInbound
-        .filter((m: any) => m.content)
-        .slice(0, 30)
-        .map((m: any) => m.content.slice(0, 100));
+        const convos = convosRes.data ?? [];
+        const recentInbound = recentMsgsRes.data ?? [];
 
-      dataContext = `
+        const openConvos = convos.filter((c: any) => c.status === "open").length;
+        const closedConvos = convos.filter((c: any) => c.status === "closed").length;
+        const unreadCount = convos.reduce((s: number, c: any) => s + (c.unread_count || 0), 0);
+        const aiEnabled = convos.filter((c: any) => c.ai_enabled).length;
+
+        const now = Date.now();
+        const expiredWindows = convos.filter((c: any) => {
+          if (!c.last_inbound_at) return true;
+          return now - new Date(c.last_inbound_at).getTime() > 24 * 60 * 60 * 1000;
+        }).length;
+
+        const sampleMessages = recentInbound
+          .filter((m: any) => m.content)
+          .slice(0, 30)
+          .map((m: any) => m.content.slice(0, 100));
+
+        dataContext = `
 INBOX DATA:
 - Total conversations: ${convos.length} (${openConvos} open, ${closedConvos} closed)
 - Unread messages: ${unreadCount}
@@ -264,13 +282,14 @@ INBOX DATA:
 ${sampleMessages.map((m: string, i: number) => `  ${i + 1}. "${m}"`).join("\n")}
 `;
 
-      systemPrompt = `You are a customer communication analyst for a WhatsApp Business account. Analyze the inbox data and provide:
+        systemPrompt = `You are a customer communication analyst for a WhatsApp Business account. Analyze the inbox data and provide:
 1. Inbox health summary (workload, response gaps)
 2. Top 3-5 topics/themes customers are asking about (based on the sample messages)
 3. Sentiment overview (are messages generally positive, neutral, or complaints?)
 4. Recommendations (enable AI on more conversations? update knowledge base with common questions?)
 
 Be concise and actionable. Under 150 words. No emojis.`;
+      }
     }
 
     else {

@@ -17,6 +17,7 @@ import {
   Zap,
   Bot,
   Code,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ export function AppSidebar() {
       { to: "/communications", icon: MessageSquare, label: "Communications" },
       { to: "/automations", icon: Zap, label: "Automations" },
       { to: "/chatbot", icon: Bot, label: "Chatbot Builder" },
+      { to: "/analytics", icon: BarChart3, label: "Analytics" },
       { to: "/developers", icon: Code, label: "Developers" },
       { to: "/settings", icon: Settings, label: "Settings" },
     ] : []),

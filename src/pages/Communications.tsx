@@ -42,6 +42,8 @@ import {
   Type,
   Zap,
   Settings2,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 
 interface Conversation {
@@ -129,6 +131,10 @@ export default function Communications() {
   const [cannedFilter, setCannedFilter] = useState("");
   const [showCannedManager, setShowCannedManager] = useState(false);
   const [newCanned, setNewCanned] = useState({ title: "", content: "", shortcut: "" });
+
+  // AI suggestions
+  const [aiSuggesting, setAiSuggesting] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
 
   // Interactive message state
   const [replyMode, setReplyMode] = useState<"text" | "buttons" | "list">("text");
@@ -347,6 +353,56 @@ export default function Communications() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendReply();
+    }
+  };
+
+  const getAiSuggestions = async () => {
+    if (!activeId || aiSuggesting) return;
+    setAiSuggesting(true);
+    setAiSuggestions([]);
+
+    try {
+      // Get last few messages for context
+      const recentMsgs = messages.slice(-6).map((m) => ({
+        role: m.direction === "inbound" ? "customer" : "agent",
+        content: m.content || "[media]",
+      }));
+
+      const activeConvo = conversations.find((c) => c.id === activeId);
+      const contactName = activeConvo?.contacts?.name || activeConvo?.phone_number || "Customer";
+
+      const { data, error } = await supabase.functions.invoke("ai-insights", {
+        body: {
+          type: "inbox",
+          context: {
+            generate_suggestions: true,
+            contact_name: contactName,
+            recent_messages: recentMsgs,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      // Parse suggestions from AI response
+      const text = data?.insight || data?.analysis || "";
+      const suggestions = text
+        .split(/\n/)
+        .filter((l: string) => l.trim().startsWith("-") || l.trim().startsWith("•") || /^\d+[\.\)]/.test(l.trim()))
+        .map((l: string) => l.replace(/^[\s\-•\d\.\)]+/, "").trim())
+        .filter((l: string) => l.length > 5 && l.length < 500)
+        .slice(0, 3);
+
+      if (suggestions.length === 0 && text.length > 10) {
+        // If AI didn't use bullet format, just use the whole response
+        setAiSuggestions([text.substring(0, 300)]);
+      } else {
+        setAiSuggestions(suggestions);
+      }
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "AI Error", description: err.message });
+    } finally {
+      setAiSuggesting(false);
     }
   };
 
@@ -680,6 +736,16 @@ export default function Communications() {
                       className="min-h-[40px] max-h-[120px] resize-none"
                       rows={1}
                     />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="shrink-0"
+                      title="AI suggested replies"
+                      onClick={getAiSuggestions}
+                      disabled={aiSuggesting || messages.length === 0}
+                    >
+                      {aiSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    </Button>
                     <Popover open={showCannedManager} onOpenChange={setShowCannedManager}>
                       <PopoverTrigger asChild>
                         <Button size="icon" variant="ghost" className="shrink-0" title="Manage saved replies">
@@ -722,6 +788,32 @@ export default function Communications() {
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
+
+                  {/* AI Suggestions */}
+                  {aiSuggestions.length > 0 && (
+                    <div className="flex gap-1.5 flex-wrap">
+                      {aiSuggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs text-primary hover:bg-primary/10 transition-colors max-w-[300px] truncate"
+                          onClick={() => {
+                            setReplyText(s);
+                            setAiSuggestions([]);
+                          }}
+                          title={s}
+                        >
+                          <Sparkles className="mr-1 inline h-3 w-3" />
+                          {s}
+                        </button>
+                      ))}
+                      <button
+                        className="rounded-full border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-accent"
+                        onClick={() => setAiSuggestions([])}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
 
                   {/* Buttons builder */}
                   {replyMode === "buttons" && (
