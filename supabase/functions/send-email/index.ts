@@ -34,13 +34,44 @@ serve(async (req) => {
 
       // generateLink creates the user (if new) AND returns a confirmation link
       // without sending Supabase's built-in email
-      const { data: linkData, error: linkError } =
+      let linkData: any;
+      let linkError: any;
+
+      ({ data: linkData, error: linkError } =
         await supabase.auth.admin.generateLink({
           type: "signup",
           email,
           password,
           options: { redirectTo: `${siteUrl}/login` },
-        });
+        }));
+
+      // If user already exists, check if unconfirmed and resend confirmation
+      if (linkError?.message?.includes("already been registered")) {
+        const { data: { users }, error: listErr } =
+          await supabase.auth.admin.listUsers({ filter: email, page: 1, perPage: 1 });
+
+        const existing = users?.find((u: any) => u.email === email);
+
+        if (existing && existing.email_confirmed_at) {
+          // Already confirmed — tell them to sign in
+          return new Response(
+            JSON.stringify({ error: "This email is already registered. Please sign in instead." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        // Unconfirmed user — update password and resend confirmation via invite link
+        if (existing) {
+          await supabase.auth.admin.updateUser(existing.id, { password });
+        }
+
+        ({ data: linkData, error: linkError } =
+          await supabase.auth.admin.generateLink({
+            type: "magiclink",
+            email,
+            options: { redirectTo: `${siteUrl}/login` },
+          }));
+      }
 
       if (linkError) {
         return new Response(
