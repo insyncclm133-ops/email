@@ -99,6 +99,7 @@ export default function Automations() {
     const { data } = await supabase
       .from("templates")
       .select("*")
+      .eq("org_id", currentOrg.id)
       .eq("status", "approved")
       .order("name");
     setTemplates((data as any) ?? []);
