@@ -1138,7 +1138,7 @@ export default function Templates() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Templates</h1>
           <p className="text-muted-foreground">Create and manage your WhatsApp message templates</p>
@@ -1155,7 +1155,7 @@ export default function Templates() {
       </div>
 
       {/* Filters */}
-      <div className="mb-4 flex gap-3">
+      <div className="mb-4 flex flex-wrap gap-3">
         <Select value={filterCategory} onValueChange={setFilterCategory}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Category" />

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -19,6 +20,8 @@ import {
   Code,
   BarChart3,
   ScrollText,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,9 +30,15 @@ export function AppSidebar() {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const { currentOrg, orgRole, isPlatformAdmin } = useOrg();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const isAdmin = orgRole === "admin" || isPlatformAdmin;
   const hasOrg = !!currentOrg;
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   const navItems = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -51,14 +60,25 @@ export function AppSidebar() {
     ...(isAdmin && hasOrg ? [{ to: "/org-settings", icon: Building2, label: "Org Settings" }] : []),
   ];
 
-  return (
-    <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground">
+  const sidebarContent = (
+    <>
       {/* Brand */}
-      <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
-        <MessageCircle className="h-7 w-7 text-sidebar-primary" />
-        <span className="text-lg font-bold tracking-tight text-sidebar-primary-foreground">
-          In-Sync
-        </span>
+      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="h-7 w-7 text-sidebar-primary" />
+          <span className="text-lg font-bold tracking-tight text-sidebar-primary-foreground">
+            In-Sync
+          </span>
+        </div>
+        {/* Close button on mobile */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden text-sidebar-foreground"
+          onClick={() => setMobileOpen(false)}
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Org Switcher */}
@@ -67,7 +87,7 @@ export function AppSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {navItems.map((item) => {
           const active = location.pathname === item.to;
           return (
@@ -103,6 +123,40 @@ export function AppSidebar() {
           Sign Out
         </Button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger button */}
+      <div className="fixed left-4 top-4 z-50 lg:hidden">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-10 w-10 bg-background shadow-md"
+          onClick={() => setMobileOpen(true)}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — hidden on mobile by default, slide in when open */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground transition-transform duration-200",
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        )}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }
