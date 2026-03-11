@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import { decryptNestedContacts } from "@/lib/decryptPii";
@@ -109,6 +110,7 @@ export default function Communications() {
   const { currentOrg } = useOrg();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -237,6 +239,18 @@ export default function Communications() {
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
+
+  // Auto-select conversation when navigated from Contacts with ?phone= param
+  useEffect(() => {
+    const phone = searchParams.get("phone");
+    if (!phone || conversations.length === 0) return;
+    const match = conversations.find((c) => c.phone_number === phone);
+    if (match) {
+      setActiveId(match.id);
+      // Clear the param so it doesn't keep re-selecting
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, conversations, setSearchParams]);
 
   // Realtime for conversations
   useEffect(() => {

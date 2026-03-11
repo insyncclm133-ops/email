@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, Plus, Trash2, Search, Megaphone, Tag, Filter, X, Save, FolderOpen } from "lucide-react";
+import { Upload, Plus, Trash2, Search, Megaphone, Tag, Filter, X, Save, FolderOpen, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { decryptContacts } from "@/lib/decryptPii";
 
@@ -412,7 +412,7 @@ export default function Contacts() {
                   <TableHead>Email</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead>Tags</TableHead>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="w-24"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -440,9 +440,19 @@ export default function Contacts() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => deleteContact(contact.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Send Message"
+                          onClick={() => navigate(`/communications?phone=${encodeURIComponent(contact.phone_number)}`)}
+                        >
+                          <MessageSquare className="h-4 w-4 text-primary" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => deleteContact(contact.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
