@@ -211,7 +211,7 @@ export function PlatformOrgsTable({ organizations }: Props) {
                         >
                           <IndianRupee className="h-3.5 w-3.5" /> Credit
                         </Button>
-                        {canDeleteOrg && (
+                        {canDeleteOrg && org.contacts === 0 && org.campaigns === 0 && org.messages === 0 && (
                           <Button
                             variant="outline"
                             size="sm"
