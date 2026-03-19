@@ -10,11 +10,33 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, MessageCircle, CreditCard, Loader2, Bot } from "lucide-react";
+import { Building2, MessageCircle, CreditCard, Loader2, Bot, Trash2, AlertTriangle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function OrgSettings() {
   const { currentOrg, refreshOrgs } = useOrg();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
+
+  const ALLOWED_DELETE_EMAILS = ["amina@in-sync.co.in", "a@in-sync.co.in"];
+  const canDeleteOrg = user?.email ? ALLOWED_DELETE_EMAILS.includes(user.email.toLowerCase()) : false;
+
+  // Delete org
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [confirmName, setConfirmName] = useState("");
 
   // Profile
   const [name, setName] = useState("");
@@ -141,6 +163,25 @@ export default function OrgSettings() {
     setCredsLoading(false);
   };
 
+  const deleteOrg = async () => {
+    if (!currentOrg || confirmName !== currentOrg.name) return;
+    setDeleteLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-org", {
+        body: { action: "delete", org_id: currentOrg.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Organization deleted" });
+      await refreshOrgs();
+      navigate("/dashboard");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    }
+    setDeleteLoading(false);
+    setConfirmName("");
+  };
+
   return (
     <DashboardLayout>
       <div className="mb-8">
@@ -162,6 +203,11 @@ export default function OrgSettings() {
           <TabsTrigger value="billing" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" /> Billing
           </TabsTrigger>
+          {canDeleteOrg && (
+            <TabsTrigger value="danger" className="flex items-center gap-2 text-destructive data-[state=active]:text-destructive">
+              <AlertTriangle className="h-4 w-4" /> Danger Zone
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -312,6 +358,68 @@ export default function OrgSettings() {
             </CardContent>
           </Card>
         </TabsContent>
+        {canDeleteOrg && (
+          <TabsContent value="danger">
+            <Card className="border-destructive/50">
+              <CardHeader>
+                <CardTitle className="text-destructive flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" /> Danger Zone
+                </CardTitle>
+                <CardDescription>
+                  Irreversible actions for this organization
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between rounded-lg border border-destructive/30 p-4">
+                  <div>
+                    <p className="text-sm font-medium">Delete this organization</p>
+                    <p className="text-xs text-muted-foreground">
+                      Permanently delete <strong>{currentOrg?.name}</strong> and all its data including contacts, campaigns, templates, and messages. This action cannot be undone.
+                    </p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete Organization
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-3">
+                          <span className="block">
+                            This will permanently delete <strong>{currentOrg?.name}</strong> and all associated data including contacts, campaigns, templates, messages, and credentials.
+                          </span>
+                          <span className="block font-medium text-destructive">This action cannot be undone.</span>
+                          <span className="block">
+                            Type <strong>{currentOrg?.name}</strong> below to confirm:
+                          </span>
+                          <Input
+                            value={confirmName}
+                            onChange={(e) => setConfirmName(e.target.value)}
+                            placeholder="Organization name"
+                            className="mt-2"
+                          />
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setConfirmName("")}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={deleteOrg}
+                          disabled={confirmName !== currentOrg?.name || deleteLoading}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {deleteLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Delete permanently
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </DashboardLayout>
   );

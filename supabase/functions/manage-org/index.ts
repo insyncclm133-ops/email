@@ -242,7 +242,44 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Invalid action. Use: create, update, update_credentials, get_credentials, complete_onboarding" }), {
+    // ── DELETE ORG ──
+    if (action === "delete") {
+      const { org_id } = body;
+      if (!org_id) {
+        return new Response(JSON.stringify({ error: "org_id required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Only allow specific users to delete organizations
+      const allowedEmails = ["amina@in-sync.co.in", "a@in-sync.co.in"];
+      if (!user.email || !allowedEmails.includes(user.email.toLowerCase())) {
+        return new Response(JSON.stringify({ error: "You do not have permission to delete organizations" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Delete the organization (all related data cascades automatically)
+      const { error: deleteError } = await supabase
+        .from("organizations")
+        .delete()
+        .eq("id", org_id);
+
+      if (deleteError) {
+        return new Response(JSON.stringify({ error: "Failed to delete organization", details: deleteError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: "Invalid action. Use: create, update, update_credentials, get_credentials, complete_onboarding, delete" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
