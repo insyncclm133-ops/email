@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 
@@ -50,11 +50,20 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const [orgRole, setOrgRole] = useState<"admin" | "member" | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Stabilise the user identity so token refreshes (which create a new user
+  // object with the same id) don't cause a full org re-fetch + loading flash.
+  const userIdRef = useRef<string | null>(null);
+  const userId = user?.id ?? null;
+  if (userIdRef.current !== userId) {
+    userIdRef.current = userId;
+  }
+
   const fetchOrgs = useCallback(async () => {
     // Wait for auth to finish before fetching orgs
     if (authLoading) return;
 
-    if (!user || isPlatformAdmin) {
+    const uid = userIdRef.current;
+    if (!uid || isPlatformAdmin) {
       setOrgs([]);
       setCurrentOrg(null);
       setOrgRole(null);
@@ -67,7 +76,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     const { data: memberships } = await supabase
       .from("org_memberships")
       .select("org_id, role, organizations(*)")
-      .eq("user_id", user.id);
+      .eq("user_id", uid);
 
     const mapped: OrgMembership[] = (memberships ?? []).map((m: any) => ({
       org_id: m.org_id,
@@ -93,7 +102,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(false);
-  }, [user, isPlatformAdmin, authLoading]);
+  }, [userId, isPlatformAdmin, authLoading]);
 
   useEffect(() => {
     let cancelled = false;
