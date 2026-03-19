@@ -219,6 +219,7 @@ serve(async (req) => {
       const { data } = await supabase
         .from("templates")
         .select("id, name, content, category, language, status, buttons, carousel_cards")
+        .eq("org_id", orgId)
         .order("name");
 
       return jsonResponse({ data });
