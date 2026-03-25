@@ -65,9 +65,9 @@ serve(async (req) => {
       const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
       const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
 
-      const [messagesRes, messagesPrevRes, contactsRes, campaignsRes, walletRes, convosRes] =
+      const [messagesRes, messagesPrevRes, contactsRes, campaignsRes, walletRes] =
         await Promise.all([
-          supabase.from("messages").select("status, created_at, campaign_id, direction")
+          supabase.from("messages").select("status, created_at, campaign_id")
             .eq("org_id", org_id).gte("created_at", monthStart),
           supabase.from("messages").select("status")
             .eq("org_id", org_id).gte("created_at", prevMonthStart).lt("created_at", monthStart),
@@ -75,8 +75,6 @@ serve(async (req) => {
           supabase.from("campaigns").select("id, name, status, created_at")
             .eq("org_id", org_id).order("created_at", { ascending: false }).limit(10),
           supabase.from("org_wallets").select("balance").eq("org_id", org_id).maybeSingle(),
-          supabase.from("conversations").select("id, unread_count, ai_enabled, last_inbound_at")
-            .eq("org_id", org_id).eq("status", "open"),
         ]);
 
       const msgs = messagesRes.data ?? [];
@@ -84,14 +82,11 @@ serve(async (req) => {
       const totalContacts = contactsRes.count ?? 0;
       const campaigns = campaignsRes.data ?? [];
       const balance = walletRes.data?.balance ?? 0;
-      const convos = convosRes.data ?? [];
 
-      const outbound = msgs.filter((m: any) => m.direction !== "inbound");
-      const inbound = msgs.filter((m: any) => m.direction === "inbound");
-      const sent = outbound.length;
-      const delivered = outbound.filter((m: any) => m.status === "delivered" || m.status === "read").length;
-      const read = outbound.filter((m: any) => m.status === "read").length;
-      const failed = outbound.filter((m: any) => m.status === "failed").length;
+      const sent = msgs.length;
+      const delivered = msgs.filter((m: any) => m.status === "delivered" || m.status === "read").length;
+      const read = msgs.filter((m: any) => m.status === "read").length;
+      const failed = msgs.filter((m: any) => m.status === "failed").length;
       const deliveryRate = sent > 0 ? Math.round((delivered / sent) * 100) : 0;
       const readRate = delivered > 0 ? Math.round((read / delivered) * 100) : 0;
       const failRate = sent > 0 ? Math.round((failed / sent) * 100) : 0;
@@ -102,7 +97,7 @@ serve(async (req) => {
 
       // Daily breakdown for last 7 days
       const dailyCounts: Record<string, { sent: number; delivered: number; failed: number }> = {};
-      for (const m of outbound) {
+      for (const m of msgs) {
         const day = m.created_at.slice(0, 10);
         if (day >= sevenDaysAgo.slice(0, 10)) {
           if (!dailyCounts[day]) dailyCounts[day] = { sent: 0, delivered: 0, failed: 0 };
@@ -111,10 +106,6 @@ serve(async (req) => {
           if (m.status === "failed") dailyCounts[day].failed++;
         }
       }
-
-      const unreadConvos = convos.filter((c: any) => c.unread_count > 0).length;
-      const totalUnread = convos.reduce((s: number, c: any) => s + (c.unread_count || 0), 0);
-      const aiEnabledCount = convos.filter((c: any) => c.ai_enabled).length;
 
       // Estimate days of balance remaining
       const avgDailyCost = sent > 0 ? (sent / new Date().getDate()) * 1.18 : 0; // assuming Re 1 avg + GST
@@ -126,22 +117,19 @@ DASHBOARD DATA (current month):
 - Delivery rate: ${deliveryRate}% (last month: ${prevDeliveryRate}%)
 - Read rate: ${readRate}%
 - Failure rate: ${failRate}% (${failed} failed)
-- Inbound messages: ${inbound.length}
 - Total contacts: ${totalContacts}
 - Active campaigns: ${campaigns.filter((c: any) => c.status === "running").length}
 - Completed campaigns: ${campaigns.filter((c: any) => c.status === "completed").length}
 - Draft campaigns: ${campaigns.filter((c: any) => c.status === "draft").length}
 - Wallet balance: ₹${balance}
 ${daysRemaining !== null ? `- Estimated days of balance remaining: ~${daysRemaining} days` : ""}
-- Open conversations: ${convos.length} (${unreadConvos} with unread messages, ${totalUnread} total unread)
-- AI auto-reply enabled on: ${aiEnabledCount}/${convos.length} conversations
 - Daily breakdown (last 7 days): ${JSON.stringify(dailyCounts)}
 `;
 
-      systemPrompt = `You are a email marketing analytics assistant. Analyze the dashboard data and provide 3-5 concise, actionable insights. Focus on:
+      systemPrompt = `You are an email broadcast platform analytics assistant. Analyze the dashboard data and provide 3-5 concise, actionable insights. Focus on:
 1. Trends (improving/declining metrics vs last month)
 2. Anomalies (unusual failure rates, delivery drops)
-3. Opportunities (unread conversations, balance warnings, AI adoption)
+3. Opportunities (balance warnings, campaign timing, contact growth)
 4. Recommendations (specific, actionable steps)
 
 Be direct and specific with numbers. Use bullet points. Keep total response under 200 words. Do not use emojis.`;
@@ -213,7 +201,7 @@ Created: ${campaign.created_at}
 ${topErrors.length > 0 ? `- Top error messages: ${topErrors.map(([e, c]) => `"${e}" (${c}x)`).join(", ")}` : "- No errors"}
 `;
 
-      systemPrompt = `You are a email campaign analyst. Analyze this campaign's performance and provide:
+      systemPrompt = `You are an email broadcast campaign analyst. Analyze this campaign's performance and provide:
 1. Overall assessment (good/average/poor performance)
 2. Key metrics analysis (delivery rate, read rate vs industry benchmarks of ~95% delivery, ~50% read)
 3. If there are failures, diagnose likely causes
@@ -223,77 +211,8 @@ ${topErrors.length > 0 ? `- Top error messages: ${topErrors.map(([e, c]) => `"${
 Be concise, specific with numbers. Under 150 words. No emojis.`;
     }
 
-    // ── INBOX INSIGHTS or AI SUGGESTIONS ──
-    else if (type === "inbox") {
-      // Check if this is a suggestion request
-      if (context?.generate_suggestions) {
-        const recentMsgs = context.recent_messages || [];
-        const contactName = context.contact_name || "Customer";
-
-        dataContext = `
-CONVERSATION WITH ${contactName}:
-${recentMsgs.map((m: any) => `${m.role}: ${m.content}`).join("\n")}
-`;
-
-        systemPrompt = `You are a customer support agent for a email Business account. Based on the conversation above, suggest 3 short reply options the agent could send next.
-
-Rules:
-- Each suggestion should be 1-2 sentences max
-- Be helpful, professional, and friendly
-- Vary the tone: one direct answer, one empathetic, one proactive
-- Format as a simple bulleted list with "-" prefix
-- No emojis. Keep each under 150 characters.`;
-      } else {
-        // Standard inbox insights
-        const [convosRes, recentMsgsRes] = await Promise.all([
-          supabase.from("conversations").select("id, unread_count, ai_enabled, status, last_inbound_at")
-            .eq("org_id", org_id),
-          supabase.from("messages").select("content, direction, conversation_id, created_at")
-            .eq("org_id", org_id).eq("direction", "inbound")
-            .order("created_at", { ascending: false }).limit(50),
-        ]);
-
-        const convos = convosRes.data ?? [];
-        const recentInbound = recentMsgsRes.data ?? [];
-
-        const openConvos = convos.filter((c: any) => c.status === "open").length;
-        const closedConvos = convos.filter((c: any) => c.status === "closed").length;
-        const unreadCount = convos.reduce((s: number, c: any) => s + (c.unread_count || 0), 0);
-        const aiEnabled = convos.filter((c: any) => c.ai_enabled).length;
-
-        const now = Date.now();
-        const expiredWindows = convos.filter((c: any) => {
-          if (!c.last_inbound_at) return true;
-          return now - new Date(c.last_inbound_at).getTime() > 24 * 60 * 60 * 1000;
-        }).length;
-
-        const sampleMessages = recentInbound
-          .filter((m: any) => m.content)
-          .slice(0, 30)
-          .map((m: any) => m.content.slice(0, 100));
-
-        dataContext = `
-INBOX DATA:
-- Total conversations: ${convos.length} (${openConvos} open, ${closedConvos} closed)
-- Unread messages: ${unreadCount}
-- AI auto-reply enabled: ${aiEnabled}/${convos.length}
-- Conversations with expired 24hr window: ${expiredWindows}
-- Recent inbound messages (last 30, for topic analysis):
-${sampleMessages.map((m: string, i: number) => `  ${i + 1}. "${m}"`).join("\n")}
-`;
-
-        systemPrompt = `You are a customer communication analyst for a email Business account. Analyze the inbox data and provide:
-1. Inbox health summary (workload, response gaps)
-2. Top 3-5 topics/themes customers are asking about (based on the sample messages)
-3. Sentiment overview (are messages generally positive, neutral, or complaints?)
-4. Recommendations (enable AI on more conversations? update knowledge base with common questions?)
-
-Be concise and actionable. Under 150 words. No emojis.`;
-      }
-    }
-
     else {
-      return new Response(JSON.stringify({ error: "Invalid type. Use: dashboard, campaign, inbox" }), {
+      return new Response(JSON.stringify({ error: "Invalid type. Use: dashboard, campaign" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

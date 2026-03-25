@@ -31,7 +31,12 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const { campaign_id, offset = 0 } = body;
-    const isChainedCall = offset > 0;
+
+    // Determine if this is an internal/trusted call (from launch-scheduled or self-chaining)
+    // by checking if the Bearer token is the service role key.
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "") ?? "";
+    const isInternalCall = token === supabaseServiceKey;
 
     if (!campaign_id) {
       return new Response(JSON.stringify({ error: "campaign_id required" }), {
@@ -54,16 +59,14 @@ serve(async (req) => {
       });
     }
 
-    // ── Auth: only check JWT for the initial call ──
-    if (!isChainedCall) {
-      const authHeader = req.headers.get("Authorization");
+    // ── Auth: skip user JWT check for internal calls (service role key); require it otherwise ──
+    if (!isInternalCall) {
       if (!authHeader) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const token = authHeader.replace("Bearer ", "");
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       if (authError || !user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -86,7 +89,7 @@ serve(async (req) => {
     }
 
     // ── Atomic status check ──
-    if (!isChainedCall) {
+    if (!isInternalCall) {
       const { data: transitioned } = await supabase.rpc("transition_campaign_status", {
         _campaign_id: campaign_id,
         _from_status: "running",
@@ -98,7 +101,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-    } else if (campaign.status !== "running") {
+    } else if (isInternalCall && campaign.status !== "running") {
       return new Response(JSON.stringify({ error: "Campaign is not running", status: campaign.status }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

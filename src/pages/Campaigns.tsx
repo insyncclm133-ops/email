@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Play, Eye, ArrowLeft, ArrowRight, Upload, Download,
@@ -42,10 +41,6 @@ interface CsvError {
 const UPLOAD_BATCH = 5000;
 const UPSERT_BATCH = 500;
 
-function stripContentMarkers(content: string): string {
-  return content.replace(/^\[(Image|Video|Document) Header\]\n?/, "").trim();
-}
-
 function extractTemplateVars(text: string): string[] {
   const matches = text.match(/\{\{(\d+)\}\}/g);
   if (!matches) return [];
@@ -55,7 +50,7 @@ function extractTemplateVars(text: string): string[] {
 }
 
 function resolveMessage(text: string, mapping: Record<string, string>, row: CsvRow): string {
-  let resolved = stripContentMarkers(text);
+  let resolved = text;
   for (const [varNum, col] of Object.entries(mapping)) {
     resolved = resolved.replaceAll(`{{${varNum}}}`, row[col] || `{{${varNum}}}`);
   }
@@ -82,24 +77,8 @@ function isEmailColumn(h: string): boolean {
   return l.includes("email") || l === "e-mail" || l === "mail";
 }
 
-function isPhoneColumn(h: string): boolean {
-  const l = h.toLowerCase();
-  return l.includes("phone") || l.includes("mobile") || l === "number";
-}
-
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-}
-
-function isValidPhone(phone: string): boolean {
-  const cleaned = phone.replace(/[\s\-\(\)]/g, "");
-  return /^\+?\d{10,15}$/.test(cleaned);
-}
-
-function normalizePhone(phone: string): string {
-  let cleaned = phone.replace(/[\s\-\(\)\+]/g, "");
-  if (/^\d{10}$/.test(cleaned)) cleaned = "91" + cleaned;
-  return cleaned;
 }
 
 const statusColor: Record<string, string> = {
@@ -219,7 +198,7 @@ function CampaignList({ onNew }: { onNew: () => void }) {
               <CardContent>
                 {c.template_message && (
                   <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">
-                    {stripContentMarkers(c.template_message)}
+                    {c.template_message}
                   </p>
                 )}
                 {c.status === "scheduled" && c.scheduled_at && (
@@ -286,7 +265,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   );
 
   const displayContent = useMemo(
-    () => (selectedTemplate ? stripContentMarkers(selectedTemplate.content || "") : ""),
+    () => (selectedTemplate ? (selectedTemplate.content || "") : ""),
     [selectedTemplate]
   );
 
@@ -301,13 +280,9 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
       .then(({ data }) => setTemplates((data as any) || []));
   }, [currentOrg]);
 
-  // Email column detection (primary), phone column (optional)
+  // Email column detection (primary)
   const emailColumn = useMemo(() => {
     return csvHeaders.find((h) => isEmailColumn(h)) || "";
-  }, [csvHeaders]);
-
-  const phoneColumn = useMemo(() => {
-    return csvHeaders.find((h) => isPhoneColumn(h)) || "";
   }, [csvHeaders]);
 
   // Auto-map variables
@@ -320,15 +295,15 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
       if (num === "1" && nameCol) {
         auto[num] = nameCol;
       } else {
-        const nonPhoneCols = csvHeaders.filter((h) => h !== phoneColumn);
+        const nonEmailCols = csvHeaders.filter((h) => h !== emailColumn);
         const idx = parseInt(num) - 1;
-        if (idx < nonPhoneCols.length) {
-          auto[num] = nonPhoneCols[idx];
+        if (idx < nonEmailCols.length) {
+          auto[num] = nonEmailCols[idx];
         }
       }
     }
     setVariableMapping(auto);
-  }, [templateVars, csvHeaders, phoneColumn]);
+  }, [templateVars, csvHeaders, emailColumn]);
 
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -350,9 +325,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
       const errors: CsvError[] = [];
       const validRows: CsvRow[] = [];
       const seenEmails = new Set<string>();
-
-      // Also normalize phone if present
-      const phoneCol = headers.find((h) => isPhoneColumn(h));
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
@@ -377,11 +349,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
 
         seenEmails.add(normalizedEmail);
         row[emailCol] = normalizedEmail;
-
-        // Normalize phone if present
-        if (phoneCol && row[phoneCol] && isValidPhone(row[phoneCol])) {
-          row[phoneCol] = normalizePhone(row[phoneCol]);
-        }
 
         validRows.push(row);
       }
@@ -440,7 +407,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
           name: campaignName || `${selectedTemplate.name} - ${new Date().toLocaleDateString()}`,
           subject: subject || (selectedTemplate as any).subject || selectedTemplate.name,
           template_id: selectedTemplate.id,
-          template_message: stripContentMarkers(selectedTemplate.content),
+          template_message: selectedTemplate.content,
           variable_mapping: variableMapping,
           message_category: (selectedTemplate.category || "marketing").toLowerCase(),
         } as any)
@@ -452,16 +419,15 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
       const nameCol = csvHeaders.find((h) => h.toLowerCase() === "name");
       const contactInserts = csvRows.map((row) => {
         const email = row[emailColumn] || "";
-        const phone = phoneColumn ? row[phoneColumn] || "" : "";
         const customFields: Record<string, string> = {};
         for (const h of csvHeaders) {
-          if (h === emailColumn || h === phoneColumn || h === nameCol) continue;
+          if (h === emailColumn || h === nameCol) continue;
           if (row[h]) customFields[h] = row[h];
         }
         return {
           user_id: user.id,
           org_id: currentOrg.id,
-          phone_number: phone || email, // phone_number used as fallback unique key
+          phone_number: email, // placeholder for NOT NULL constraint; unique per org via onConflict
           email,
           name: nameCol ? row[nameCol] || null : null,
           source: "campaign_csv",
@@ -638,8 +604,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                     onValueChange={(val) => {
                       const t = templates.find((t) => t.id === val);
                       setSelectedTemplate(t || null);
-                      setMediaFile(null);
-                      setMediaPreviewUrl(null);
                     }}
                   >
                     <SelectTrigger>
@@ -657,9 +621,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
               </div>
               {selectedTemplate && (
                 <div className="rounded-lg border bg-muted/30 p-3">
-                  {mediaType && (
-                    <Badge variant="outline" className="mb-2 text-[10px] capitalize">{mediaType} header</Badge>
-                  )}
                   <p className="text-xs text-muted-foreground whitespace-pre-wrap">{displayContent}</p>
                 </div>
               )}

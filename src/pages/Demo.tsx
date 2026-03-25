@@ -8,13 +8,11 @@ import {
   Users,
   Megaphone,
   FileText,
-  MessageSquare,
   Zap,
   Settings,
   Wallet,
   Send,
   CheckCheck,
-  Check,
   Eye,
   TrendingUp,
   ArrowRight,
@@ -22,7 +20,6 @@ import {
   Pause,
   RotateCcw,
   Clock,
-  Bot,
   Rocket,
   Upload,
   Sparkles,
@@ -54,8 +51,6 @@ const SCENES = [
   { id: "contacts", label: "Contacts", duration: 11000 },
   { id: "campaigns", label: "Campaigns", duration: 12000 },
   { id: "automations", label: "Drips", duration: 11000 },
-  { id: "chatbots", label: "Chatbots", duration: 12000 },
-  { id: "communications", label: "AI Chat", duration: 13000 },
   { id: "developers", label: "API", duration: 11000 },
   { id: "compliance", label: "DPDP", duration: 11000 },
   { id: "billing", label: "Billing", duration: 10000 },
@@ -96,8 +91,6 @@ const navItems = [
   { icon: LayoutDashboard, label: "Dashboard" },
   { icon: Users, label: "Contacts" },
   { icon: Megaphone, label: "Campaigns" },
-  { icon: MessageSquare, label: "Communications" },
-  { icon: Bot, label: "Chatbots" },
   { icon: Zap, label: "Automations" },
   { icon: BarChart3, label: "Analytics" },
   { icon: ShieldCheck, label: "Compliance" },
@@ -293,20 +286,6 @@ function TypewriterText({ text, delay = 0, speed = 30 }: { text: string; delay?:
     return () => clearTimeout(timeout);
   }, [text, delay, speed]);
   return <>{shown}<motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity }} className="inline-block w-0.5 h-4 bg-primary ml-0.5 align-middle" /></>;
-}
-
-/* ── Flow connector for chatbot builder ───────────────── */
-
-function FlowLine() {
-  return (
-    <motion.div
-      initial={{ scaleY: 0 }}
-      animate={{ scaleY: 1 }}
-      transition={{ duration: 0.3 }}
-      className="h-5 w-px bg-border/60"
-      style={{ transformOrigin: "top" }}
-    />
-  );
 }
 
 /* ── Scene: Intro ─────────────────────────────────────── */
@@ -889,342 +868,6 @@ function SceneAutomations() {
   );
 }
 
-/* ── Scene: Visual Chatbot Builder (NEW) ──────────────── */
-
-function SceneChatbots() {
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const timers = [
-      setTimeout(() => setStep(1), 1200),
-      setTimeout(() => setStep(2), 2800),
-      setTimeout(() => setStep(3), 4500),
-      setTimeout(() => setStep(4), 6500),
-      setTimeout(() => setStep(5), 8500),
-      setTimeout(() => setStep(6), 10500),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, []);
-
-  const nodeTypes = [
-    { label: "Send Message", color: "bg-blue-500" },
-    { label: "Buttons", color: "bg-purple-500" },
-    { label: "List Menu", color: "bg-indigo-500" },
-    { label: "Wait Reply", color: "bg-yellow-500" },
-    { label: "Condition", color: "bg-orange-500" },
-    { label: "Set Variable", color: "bg-teal-500" },
-    { label: "Assign Agent", color: "bg-cyan-500" },
-    { label: "Close Chat", color: "bg-red-500" },
-  ];
-
-  return (
-    <motion.div {...fade} className="flex h-full">
-      <MockSidebar active="Chatbots" />
-      <div className="flex flex-1 overflow-hidden">
-        {/* Node palette */}
-        <motion.div {...slideRight(0.1)} className="w-32 shrink-0 border-r border-border/60 bg-muted/20 p-3">
-          <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Drag to add</p>
-          <div className="space-y-1">
-            {nodeTypes.map((n, i) => (
-              <motion.div key={n.label}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0, transition: { delay: 0.15 + i * 0.05 } }}
-                className="flex items-center gap-1.5 rounded-md border border-border/40 bg-card px-2 py-1 text-[9px] font-medium text-foreground">
-                <span className={`h-1.5 w-1.5 rounded-sm ${n.color}`} />
-                {n.label}
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Canvas */}
-        <div className="flex-1 p-4">
-          <motion.div {...slideUp(0)} className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Bot className="h-4 w-4 text-primary" />
-              <span className="text-base font-bold text-foreground">Welcome Bot</span>
-              {step >= 6 && (
-                <motion.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">
-                  Active
-                </motion.span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {step >= 5 && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                  <span>Sessions: <strong className="text-foreground">1,247</strong></span>
-                  <span>Completion: <strong className="text-emerald-600">89%</strong></span>
-                </motion.div>
-              )}
-              <div className="rounded-lg bg-primary px-3 py-1.5 text-[10px] font-semibold text-primary-foreground">Save</div>
-            </div>
-          </motion.div>
-
-          {/* Flow canvas area */}
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-background/50" style={{ height: 310 }}>
-            {/* Dot grid background */}
-            <div className="absolute inset-0 opacity-[0.04]"
-              style={{ backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "16px 16px" }} />
-
-            <div className="relative flex flex-col items-center gap-0 py-4">
-              {/* Trigger node */}
-              {step >= 1 && (
-                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-lg border-2 border-emerald-300 bg-emerald-50 px-4 py-2 shadow-sm">
-                  <div className="flex items-center gap-1.5">
-                    <Zap className="h-3.5 w-3.5 text-emerald-600" />
-                    <span className="text-[10px] font-semibold text-foreground">Trigger</span>
-                  </div>
-                  <p className="mt-0.5 text-[9px] text-muted-foreground">Keyword: "hello"</p>
-                </motion.div>
-              )}
-
-              {step >= 2 && <FlowLine />}
-
-              {/* Send Message node */}
-              {step >= 2 && (
-                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-lg border-2 border-blue-300 bg-blue-50 px-4 py-2 shadow-sm">
-                  <div className="flex items-center gap-1.5">
-                    <MessageSquare className="h-3.5 w-3.5 text-blue-600" />
-                    <span className="text-[10px] font-semibold text-foreground">Send Message</span>
-                  </div>
-                  <p className="mt-0.5 max-w-[180px] text-[9px] text-muted-foreground">Welcome! How can I help? 👋</p>
-                </motion.div>
-              )}
-
-              {step >= 3 && <FlowLine />}
-
-              {/* Buttons node */}
-              {step >= 3 && (
-                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-lg border-2 border-purple-300 bg-purple-50 px-4 py-2 shadow-sm">
-                  <div className="flex items-center gap-1.5">
-                    <MessageSquare className="h-3.5 w-3.5 text-purple-600" />
-                    <span className="text-[10px] font-semibold text-foreground">Reply Buttons</span>
-                  </div>
-                  <div className="mt-1 flex gap-1">
-                    {["Products", "Support", "Pricing"].map((b) => (
-                      <span key={b} className="rounded bg-purple-100 px-1.5 py-0.5 text-[7px] font-medium text-purple-700">{b}</span>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Branch nodes */}
-              {step >= 4 && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
-                  <div className="h-3 w-px bg-border/60" />
-                  <div className="h-px bg-border/60" style={{ width: 220 }} />
-                  <div className="flex gap-6">
-                    {[
-                      { title: "Send Catalog", color: "border-blue-200 bg-blue-50", iconColor: "text-blue-500" },
-                      { title: "Assign Agent", color: "border-cyan-200 bg-cyan-50", iconColor: "text-cyan-500" },
-                      { title: "Send Pricing", color: "border-blue-200 bg-blue-50", iconColor: "text-blue-500" },
-                    ].map((node) => (
-                      <div key={node.title} className="flex flex-col items-center">
-                        <div className="h-3 w-px bg-border/60" />
-                        <div className={`rounded-lg border-2 ${node.color} px-2 py-1 shadow-sm`}>
-                          <div className="flex items-center gap-1">
-                            <MessageSquare className={`h-2.5 w-2.5 ${node.iconColor}`} />
-                            <span className="text-[8px] font-semibold text-foreground">{node.title}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </div>
-
-            {/* Mini-map */}
-            <div className="absolute bottom-2 right-2 rounded border border-border/30 bg-card/80 p-1.5 backdrop-blur-sm">
-              <div className="flex h-10 w-14 flex-col items-center justify-center gap-0.5 rounded bg-muted/50">
-                <div className="h-1 w-3 rounded-sm bg-emerald-400" />
-                <div className="h-1 w-3 rounded-sm bg-blue-400" />
-                <div className="h-1 w-3 rounded-sm bg-purple-400" />
-                <div className="flex gap-1">
-                  <div className="h-0.5 w-1.5 rounded-sm bg-blue-300" />
-                  <div className="h-0.5 w-1.5 rounded-sm bg-cyan-300" />
-                  <div className="h-0.5 w-1.5 rounded-sm bg-blue-300" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ── Scene: Communications (AI Auto-Reply) ────────────── */
-
-const chatMessages: { dir: string; text: string; time: string; status?: string; isAi?: boolean }[] = [
-  { dir: "out", text: "Hi Amit! 🎉\n\nGet 20% OFF on all services this March!\n\nUse code: MARCH20", time: "10:30 AM", status: "read" },
-  { dir: "in", text: "Hey! That sounds great. What services does this cover?", time: "10:32 AM" },
-  { dir: "out", text: "It covers all our premium plans — Marketing, Analytics, and Enterprise tiers. The discount applies to upgrades too! Want me to send the brochure?", time: "10:32 AM", status: "delivered", isAi: true },
-  { dir: "in", text: "Yes please! Can I also get a custom quote for my team of 15?", time: "10:35 AM" },
-  { dir: "out", text: "Of course! I'll prepare a custom quote for 15 users and share it within the hour. Anything else I can help with? 🚀", time: "10:35 AM", status: "sent", isAi: true },
-];
-
-function SceneCommunications() {
-  const [visibleMsgs, setVisibleMsgs] = useState(0);
-  const [showTyping, setShowTyping] = useState(false);
-
-  useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    timers.push(setTimeout(() => setVisibleMsgs(1), 1000));
-    timers.push(setTimeout(() => setVisibleMsgs(2), 3000));
-    timers.push(setTimeout(() => setShowTyping(true), 4500));
-    timers.push(setTimeout(() => { setShowTyping(false); setVisibleMsgs(3); }, 6000));
-    timers.push(setTimeout(() => setVisibleMsgs(4), 8500));
-    timers.push(setTimeout(() => setShowTyping(true), 10000));
-    timers.push(setTimeout(() => { setShowTyping(false); setVisibleMsgs(5); }, 11500));
-    return () => timers.forEach(clearTimeout);
-  }, []);
-
-  return (
-    <motion.div {...fade} className="flex h-full">
-      <MockSidebar active="Communications" />
-      <div className="flex flex-1 overflow-hidden">
-        {/* Conversation list */}
-        <motion.div {...slideRight(0.1)} className="w-48 shrink-0 border-r border-border/60 bg-card">
-          <div className="border-b border-border/40 p-2.5">
-            <div className="rounded-lg border border-border bg-background px-3 py-1.5 text-[10px] text-muted-foreground">
-              Search conversations...
-            </div>
-          </div>
-          <div className="space-y-0.5 p-2">
-            {[
-              { name: "Amit Sharma", msg: "Yes please! Can I also...", unread: 0, active: true, ai: true },
-              { name: "Priya Patel", msg: "Thanks for the update!", unread: 2, active: false, ai: true },
-              { name: "Raj Kumar", msg: "When is the next campaign?", unread: 1, active: false, ai: false },
-              { name: "Sneha Iyer", msg: "Got it, will check.", unread: 0, active: false, ai: true },
-            ].map((c, i) => (
-              <motion.div
-                key={c.name}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0, transition: { delay: 0.2 + i * 0.1 } }}
-                className={`flex items-start gap-2 rounded-lg px-2 py-1.5 ${c.active ? "bg-accent" : ""}`}
-              >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                  <Users className="h-3 w-3 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <p className="truncate text-[10px] font-medium text-foreground">{c.name}</p>
-                    {c.unread > 0 && (
-                      <span className="flex h-4 min-w-[14px] items-center justify-center rounded-full bg-primary px-1 text-[7px] font-bold text-primary-foreground">
-                        {c.unread}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <p className="truncate text-[8px] text-muted-foreground">{c.msg}</p>
-                    {c.ai && <Bot className="h-2.5 w-2.5 shrink-0 text-primary" />}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Chat area */}
-        <div className="flex flex-1 flex-col">
-          <motion.div {...slideUp(0.15)} className="flex items-center justify-between border-b border-border/60 px-4 py-2">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                <Users className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">Amit Sharma</p>
-                <p className="text-[10px] text-muted-foreground">+91 97XX XXX 680</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1 text-[10px] text-emerald-600">
-                <Clock className="h-3 w-3" /> 22h 15m left
-              </span>
-              <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1">
-                <Bot className="h-3.5 w-3.5 text-primary" />
-                <div className="relative h-4 w-7 rounded-full bg-primary">
-                  <div className="absolute right-0.5 top-0.5 h-3 w-3 rounded-full bg-primary-foreground" />
-                </div>
-                <span className="text-[10px] font-semibold text-primary">AI ON</span>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Messages */}
-          <div className="flex-1 space-y-2 overflow-hidden bg-muted/30 p-3">
-            <AnimatePresence>
-              {chatMessages.slice(0, visibleMsgs).map((msg, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className={`flex ${msg.dir === "out" ? "justify-end" : "justify-start"}`}
-                >
-                  <div className="max-w-[65%]">
-                    {msg.isAi && (
-                      <div className="mb-0.5 flex items-center justify-end gap-1 text-[8px] font-semibold text-primary">
-                        <Bot className="h-2.5 w-2.5" /> AI Auto-Reply
-                      </div>
-                    )}
-                    <div
-                      className={`rounded-lg px-3 py-2 shadow-sm ${
-                        msg.dir === "out"
-                          ? msg.isAi
-                            ? "rounded-tr-none bg-gradient-to-br from-primary to-primary/90 text-primary-foreground ring-1 ring-primary/30"
-                            : "rounded-tr-none bg-primary text-primary-foreground"
-                          : "rounded-tl-none border border-border bg-background text-foreground"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{msg.text}</p>
-                      <div className={`mt-1 flex items-center justify-end gap-1 text-[9px] ${
-                        msg.dir === "out" ? "text-primary-foreground/60" : "text-muted-foreground"
-                      }`}>
-                        {msg.time}
-                        {msg.dir === "out" && msg.status === "read" && <CheckCheck className="h-3 w-3 text-sky-300" />}
-                        {msg.dir === "out" && msg.status === "delivered" && <CheckCheck className="h-3 w-3" />}
-                        {msg.dir === "out" && msg.status === "sent" && <Check className="h-3 w-3" />}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            <AnimatePresence>
-              {showTyping && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex justify-end">
-                  <div className="flex items-center gap-2 rounded-lg rounded-tr-none bg-primary/10 px-3 py-2">
-                    <Bot className="h-3 w-3 text-primary" />
-                    <span className="text-[10px] font-medium text-primary">AI is composing</span>
-                    <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity }} className="text-primary">···</motion.span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <motion.div {...slideUp(0.3)} className="flex items-center gap-2 border-t border-border/60 bg-card px-4 py-2.5">
-            <div className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-[10px] text-muted-foreground">
-              AI is handling this conversation...
-            </div>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/20">
-              <Send className="h-3 w-3 text-primary" />
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
 /* ── Scene: Developer Tools (NEW) ─────────────────────── */
 
 function SceneDevelopers() {
@@ -1416,8 +1059,8 @@ function SceneDevelopers() {
                   {[
                     { method: "GET", path: "/contacts", desc: "List contacts (paginated)" },
                     { method: "POST", path: "/contacts", desc: "Create or update a contact" },
-                    { method: "GET", path: "/conversations", desc: "List conversations (?status=open)" },
-                    { method: "POST", path: "/messages/send", desc: "Send a message in a conversation" },
+                    { method: "GET", path: "/campaigns", desc: "List campaigns (?status=running)" },
+                    { method: "POST", path: "/messages/send", desc: "Send an email to a contact" },
                     { method: "GET", path: "/templates", desc: "List all approved templates" },
                   ].map((ep, i) => (
                     <motion.div key={ep.path + ep.method}
@@ -1754,8 +1397,8 @@ function SceneOutro() {
         className="relative mt-8 grid grid-cols-4 gap-3"
       >
         {[
-          { icon: Sparkles, title: "AI-Powered", desc: "Auto-replies, smart insights, and AI campaign analytics" },
-          { icon: Bot, title: "Chatbot Builder", desc: "Visual drag-and-drop flow editor with 8 node types" },
+          { icon: Sparkles, title: "AI-Powered", desc: "Smart insights and AI campaign analytics" },
+          { icon: FileText, title: "Email Templates", desc: "Create, manage, and reuse branded email templates" },
           { icon: Zap, title: "Drip Automations", desc: "Multi-step drip campaigns with branching and daily limits" },
           { icon: Users, title: "Contact Segments", desc: "Filter, tag, and save audiences for targeting" },
           { icon: ShieldCheck, title: "DPDP Compliance", desc: "AES-256 encryption, consent tracking, data rights" },
@@ -1840,8 +1483,6 @@ export default function Demo() {
       case "contacts": return <SceneContacts />;
       case "campaigns": return <SceneCampaigns />;
       case "automations": return <SceneAutomations />;
-      case "chatbots": return <SceneChatbots />;
-      case "communications": return <SceneCommunications />;
       case "developers": return <SceneDevelopers />;
       case "compliance": return <SceneCompliance />;
       case "billing": return <SceneBilling />;

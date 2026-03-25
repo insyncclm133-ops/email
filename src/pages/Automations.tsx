@@ -80,7 +80,7 @@ export default function Automations() {
     { step_order: 1, step_type: "send_template" },
   ]);
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvContacts, setCsvContacts] = useState<{ phone_number: string; name?: string }[]>([]);
+  const [csvContacts, setCsvContacts] = useState<{ email: string; name?: string; phone_number?: string }[]>([]);
   const [creating, setCreating] = useState(false);
 
   const fetchAutomations = useCallback(async () => {
@@ -146,24 +146,27 @@ export default function Automations() {
         return;
       }
       const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
-      const phoneIdx = headers.findIndex((h) =>
-        ["phone", "phone_number", "mobile", "number", "email"].includes(h)
+      const emailIdx = headers.findIndex((h) =>
+        ["email", "email_address", "e-mail"].includes(h)
       );
       const nameIdx = headers.findIndex((h) => ["name", "contact_name", "customer"].includes(h));
+      const phoneIdx = headers.findIndex((h) => ["phone", "phone_number", "mobile"].includes(h));
 
-      if (phoneIdx === -1) {
-        toast({ variant: "destructive", title: "No phone column", description: "CSV must have a phone/phone_number/mobile column" });
+      if (emailIdx === -1) {
+        toast({ variant: "destructive", title: "No email column", description: "CSV must have an email column" });
         return;
       }
 
-      const contacts: { phone_number: string; name?: string }[] = [];
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const contacts: { email: string; name?: string; phone_number?: string }[] = [];
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(",").map((c) => c.trim());
-        const phone = cols[phoneIdx]?.replace(/[^0-9+]/g, "");
-        if (phone && phone.length >= 10) {
+        const email = cols[emailIdx]?.trim();
+        if (email && emailRegex.test(email)) {
           contacts.push({
-            phone_number: phone,
-            ...(nameIdx >= 0 ? { name: cols[nameIdx] } : {}),
+            email,
+            ...(nameIdx >= 0 && cols[nameIdx] ? { name: cols[nameIdx] } : {}),
+            ...(phoneIdx >= 0 && cols[phoneIdx] ? { phone_number: cols[phoneIdx].replace(/[^0-9+]/g, "") } : {}),
           });
         }
       }
@@ -183,7 +186,7 @@ export default function Automations() {
         ...(type === "condition"
           ? {
               rules: [
-                { status: "read", goto_step: prev.length + 2 },
+                { status: "opened", goto_step: prev.length + 2 },
                 { status: "no_response", goto_step: 0 },
               ],
             }
@@ -291,17 +294,19 @@ export default function Automations() {
 
       // 3. Upsert contacts and create automation_contacts
       for (const c of csvContacts) {
-        // Upsert contact
+        // Upsert contact by email
         const { data: contact } = await supabase
           .from("contacts")
           .upsert(
             {
-              phone_number: c.phone_number,
+              email: c.email,
               name: c.name || null,
+              phone_number: c.phone_number || null,
               org_id: currentOrg.id,
+              user_id: user.id,
               source: "automation_csv",
             },
-            { onConflict: "phone_number,org_id" }
+            { onConflict: "email,org_id" }
           )
           .select("id")
           .single();
@@ -433,7 +438,7 @@ export default function Automations() {
                   )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  CSV needs a phone/phone_number/mobile column. Optional: name column.
+                  CSV needs an email column. Optional: name, phone_number columns.
                 </p>
               </div>
 
@@ -526,9 +531,10 @@ export default function Automations() {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="read">Read</SelectItem>
+                                  <SelectItem value="opened">Opened</SelectItem>
+                                  <SelectItem value="clicked">Clicked</SelectItem>
                                   <SelectItem value="delivered">Delivered</SelectItem>
-                                  <SelectItem value="replied">Replied</SelectItem>
+                                  <SelectItem value="bounced">Bounced</SelectItem>
                                   <SelectItem value="failed">Failed</SelectItem>
                                   <SelectItem value="no_response">No Response</SelectItem>
                                 </SelectContent>
