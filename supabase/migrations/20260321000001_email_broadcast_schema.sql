@@ -22,7 +22,7 @@ ALTER TABLE sender_domains ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view own org domains"
   ON sender_domains FOR SELECT
-  USING (org_id IN (SELECT unnest(get_user_org_ids(auth.uid()))));
+  USING (org_id IN (SELECT get_user_org_ids(auth.uid())));
 
 CREATE POLICY "Admins can manage org domains"
   ON sender_domains FOR ALL
@@ -88,7 +88,7 @@ ALTER TABLE unsubscribes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view own org unsubscribes"
   ON unsubscribes FOR SELECT
-  USING (org_id IN (SELECT unnest(get_user_org_ids(auth.uid()))));
+  USING (org_id IN (SELECT get_user_org_ids(auth.uid())));
 
 CREATE POLICY "Admins can manage org unsubscribes"
   ON unsubscribes FOR ALL
