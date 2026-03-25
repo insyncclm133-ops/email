@@ -71,7 +71,7 @@ serve(async (req) => {
       });
     }
 
-    // Verify user is admin of org
+    // Verify user is admin of org or platform_admin
     const { data: membership } = await supabase
       .from("org_memberships")
       .select("role")
@@ -79,7 +79,12 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (membership?.role !== "admin") {
+    const { data: isPlatformAdmin } = await supabase.rpc("has_role", {
+      _user_id: user.id,
+      _role: "platform_admin",
+    });
+
+    if (!isPlatformAdmin && membership?.role !== "admin") {
       return new Response(JSON.stringify({ error: "Forbidden: admin role required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -41,14 +41,18 @@ serve(async (req) => {
       });
     }
 
-    // Verify membership
+    // Verify membership or platform_admin
     const { data: membership } = await supabase
       .from("org_memberships")
       .select("role")
       .eq("org_id", org_id)
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!membership) {
+    const { data: isPlatformAdmin } = await supabase.rpc("has_role", {
+      _user_id: user.id,
+      _role: "platform_admin",
+    });
+    if (!isPlatformAdmin && !membership) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

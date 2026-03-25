@@ -79,8 +79,12 @@ serve(async (req) => {
         .select("role")
         .eq("user_id", user.id)
         .eq("org_id", campaign.org_id)
-        .single();
-      if (!membership || membership.role !== "admin") {
+        .maybeSingle();
+      const { data: isPlatformAdmin } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "platform_admin",
+      });
+      if (!isPlatformAdmin && (!membership || membership.role !== "admin")) {
         return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
