@@ -11,104 +11,100 @@ import {
   ArrowLeft,
   Sparkles,
   Shield,
-  IndianRupee,
-  CheckCheck,
-  Check,
-  Bot,
+  BarChart3,
+  Send,
   Loader2,
   Eye,
   EyeOff,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-/* ── Animated phone mockup ────────────────────────────── */
+/* ── Animated inbox mockup ────────────────────────────── */
 
-const mockMessages = [
-  { dir: "out", text: "Hi Priya! 🎉 Your order #4521 has been shipped. Track here: trk.in/4521", time: "10:30 AM", status: "read" },
-  { dir: "in", text: "Great, thanks! When will it arrive?", time: "10:32 AM" },
-  { dir: "out", text: "Expected delivery is tomorrow by 6 PM. I'll send you a live tracking link once it's out for delivery!", time: "10:32 AM", status: "delivered", isAi: true },
-  { dir: "in", text: "Perfect, thank you! 😊", time: "10:33 AM" },
+const mockEmails = [
+  { from: "In-Sync", subject: "🎉 Campaign 'Spring Sale' is live!", preview: "Sent to 12,450 contacts — tracking opens & clicks...", time: "2m ago", opened: true, clicked: true },
+  { from: "In-Sync", subject: "Weekly Performance Report", preview: "Open rate: 42.8% · Click rate: 12.3% · 0 bounces...", time: "1h ago", opened: true, clicked: false },
+  { from: "In-Sync", subject: "Domain verified ✓", preview: "in-sync.co.in is now verified and ready for sending...", time: "3h ago", opened: true, clicked: false },
+  { from: "In-Sync", subject: "Welcome to In-Sync!", preview: "You're all set. Start building your first campaign...", time: "1d ago", opened: true, clicked: true },
 ];
 
-function PhoneMockup() {
+function InboxMockup() {
   const [visible, setVisible] = useState(0);
 
   useEffect(() => {
-    const timers = mockMessages.map((_, i) =>
-      setTimeout(() => setVisible(i + 1), 1200 + i * 1400)
+    const timers = mockEmails.map((_, i) =>
+      setTimeout(() => setVisible(i + 1), 800 + i * 600)
     );
     return () => timers.forEach(clearTimeout);
   }, []);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30, rotateY: -8 }}
+      initial={{ opacity: 0, y: 30, rotateY: -5 }}
       animate={{ opacity: 1, y: 0, rotateY: 0 }}
       transition={{ duration: 0.8, delay: 0.3 }}
-      className="relative mx-auto w-[280px]"
+      className="relative mx-auto w-[320px]"
       style={{ perspective: 1000 }}
     >
-      {/* Phone frame */}
-      <div className="rounded-[2.5rem] border-[3px] border-white/20 bg-black/40 p-2 shadow-2xl backdrop-blur-sm">
-        <div className="overflow-hidden rounded-[2rem] bg-[#e5ddd5]">
-          {/* Status bar */}
-          <div className="flex items-center justify-between bg-primary px-4 py-2">
-            <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-full bg-white/20 flex items-center justify-center">
-                <span className="text-[10px] font-bold text-white">P</span>
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold text-white">Priya Patel</p>
-                <p className="text-[8px] text-white/60">online</p>
-              </div>
-            </div>
+      {/* Email client frame */}
+      <div className="overflow-hidden rounded-2xl border border-white/15 bg-white/10 shadow-2xl backdrop-blur-sm">
+        {/* Title bar */}
+        <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-4 py-2.5">
+          <div className="flex gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
+            <div className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
+            <div className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
           </div>
+          <div className="flex-1 text-center">
+            <span className="text-[10px] font-medium text-white/50">Inbox — In-Sync</span>
+          </div>
+        </div>
 
-          {/* Chat area */}
-          <div className="space-y-1.5 p-3" style={{ minHeight: 300 }}>
-            {mockMessages.slice(0, visible).map((msg, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.25 }}
-                className={`flex ${msg.dir === "out" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-lg px-2.5 py-1.5 shadow-sm ${
-                    msg.dir === "out"
-                      ? "rounded-tr-none bg-[#dcf8c6]"
-                      : "rounded-tl-none bg-white"
-                  }`}
-                >
-                  {msg.isAi && (
-                    <div className="mb-0.5 flex items-center gap-0.5 text-[7px] font-semibold text-primary">
-                      <Bot className="h-2 w-2" /> AI Auto-Reply
-                    </div>
-                  )}
-                  <p className="text-[10px] leading-relaxed text-gray-900">{msg.text}</p>
-                  <div className="mt-0.5 flex items-center justify-end gap-0.5 text-[8px] text-gray-500">
-                    {msg.time}
-                    {msg.dir === "out" && msg.status === "read" && <CheckCheck className="h-2.5 w-2.5 text-blue-500" />}
-                    {msg.dir === "out" && msg.status === "delivered" && <CheckCheck className="h-2.5 w-2.5" />}
-                    {msg.dir === "out" && !msg.status && <Check className="h-2.5 w-2.5" />}
+        {/* Email list */}
+        <div className="divide-y divide-white/5">
+          {mockEmails.slice(0, visible).map((email, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className={`px-4 py-3 transition-colors ${i === 0 ? "bg-white/10" : ""}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-semibold text-white">{email.from}</span>
+                    {email.opened && (
+                      <span className="inline-flex items-center rounded-full bg-sky-400/20 px-1.5 py-0.5 text-[7px] font-medium text-sky-300">
+                        Opened
+                      </span>
+                    )}
+                    {email.clicked && (
+                      <span className="inline-flex items-center rounded-full bg-emerald-400/20 px-1.5 py-0.5 text-[7px] font-medium text-emerald-300">
+                        Clicked
+                      </span>
+                    )}
                   </div>
+                  <p className="mt-0.5 truncate text-[10px] font-medium text-white/80">{email.subject}</p>
+                  <p className="mt-0.5 truncate text-[9px] text-white/40">{email.preview}</p>
                 </div>
-              </motion.div>
-            ))}
-          </div>
+                <span className="flex-shrink-0 whitespace-nowrap text-[8px] text-white/30">{email.time}</span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
 
-          {/* Input bar */}
-          <div className="flex items-center gap-2 border-t border-gray-200 bg-[#f0f0f0] px-3 py-2">
-            <div className="flex-1 rounded-full bg-white px-3 py-1.5 text-[9px] text-gray-400">
-              Type a message
-            </div>
+        {/* Compose button */}
+        <div className="border-t border-white/10 px-4 py-3">
+          <div className="flex items-center gap-2 rounded-lg bg-sky-500/20 px-3 py-2">
+            <Send className="h-3 w-3 text-sky-300" />
+            <span className="text-[10px] font-medium text-sky-200">Compose Campaign</span>
           </div>
         </div>
       </div>
 
-      {/* Glow effect behind phone */}
-      <div className="absolute -inset-10 -z-10 rounded-full bg-white/5 blur-3xl" />
+      {/* Glow effect */}
+      <div className="absolute -inset-10 -z-10 rounded-full bg-sky-400/10 blur-3xl" />
     </motion.div>
   );
 }
@@ -207,14 +203,14 @@ export default function Login() {
       {/* ── Left panel ── */}
       <div className="relative hidden w-1/2 overflow-hidden lg:flex lg:flex-col lg:justify-between">
         {/* Base gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1a12] via-[#0d2818] to-[#0a1e14]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0e1a] via-[#0d1828] to-[#0a121e]" />
 
         {/* Layered color washes */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-primary/30 blur-[150px]" />
-          <div className="absolute -bottom-40 -right-20 h-[450px] w-[450px] rounded-full bg-emerald-500/20 blur-[130px]" />
-          <div className="absolute top-1/3 right-1/4 h-72 w-72 rounded-full bg-teal-400/10 blur-[100px]" />
-          <div className="absolute bottom-1/4 left-1/4 h-56 w-56 rounded-full bg-emerald-300/8 blur-[90px]" />
+          <div className="absolute -bottom-40 -right-20 h-[450px] w-[450px] rounded-full bg-blue-500/20 blur-[130px]" />
+          <div className="absolute top-1/3 right-1/4 h-72 w-72 rounded-full bg-sky-400/10 blur-[100px]" />
+          <div className="absolute bottom-1/4 left-1/4 h-56 w-56 rounded-full bg-blue-300/8 blur-[90px]" />
         </div>
 
         {/* Fine grid texture */}
@@ -267,7 +263,7 @@ export default function Login() {
 
           {/* Center: Phone mockup + text */}
           <div className="flex flex-col items-center">
-            <PhoneMockup />
+            <InboxMockup />
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -276,12 +272,12 @@ export default function Login() {
               className="mt-10 text-center"
             >
               <h2 className="text-2xl font-bold leading-tight text-white xl:text-3xl">
-                Conversations that convert.
+                Emails that convert.
                 <br />
-                <span className="text-white/70">Powered by AI.</span>
+                <span className="text-white/70">Track every open.</span>
               </h2>
               <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/50">
-                Launch campaigns, let AI handle replies, and track every message — all self-serve, with transparent billing.
+                Launch campaigns, track opens & clicks in real time, and scale your email marketing — self-serve with transparent billing.
               </p>
             </motion.div>
 
@@ -293,9 +289,9 @@ export default function Login() {
               className="mt-6 flex flex-wrap items-center justify-center gap-2"
             >
               {[
-                { icon: Sparkles, text: "AI Auto-Replies" },
-                { icon: Shield, text: "Enterprise Security" },
-                { icon: IndianRupee, text: "Pay Per Message" },
+                { icon: BarChart3, text: "Open & Click Tracking" },
+                { icon: Shield, text: "Domain Verification" },
+                { icon: Sparkles, text: "Smart Automations" },
               ].map(({ icon: Icon, text }) => (
                 <div
                   key={text}
@@ -316,9 +312,9 @@ export default function Login() {
           >
             <div className="grid grid-cols-3 gap-4 rounded-2xl border border-white/10 bg-white/[0.07] p-5 backdrop-blur-sm">
               {[
-                { value: "98%", label: "Open Rate" },
-                { value: "45-60%", label: "Click-through" },
-                { value: "10x", label: "vs Email ROI" },
+                { value: "42%", label: "Avg Open Rate" },
+                { value: "12%", label: "Click-through" },
+                { value: "99.2%", label: "Delivery Rate" },
               ].map(({ value, label }) => (
                 <div key={label} className="text-center">
                   <p className="text-xl font-bold text-white">{value}</p>
