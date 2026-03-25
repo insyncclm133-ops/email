@@ -16,8 +16,6 @@ import {
   Eye,
   Users,
   CheckCheck,
-  Database,
-  Trash2,
   TrendingUp,
   TrendingDown,
   ShieldCheck,
@@ -53,10 +51,7 @@ import { useOrgDashboard } from "@/hooks/useOrgDashboard";
 import type { OrgKpis, RecentCampaign, MessageFunnel, DpdpStatus } from "@/hooks/useOrgDashboard";
 import { useOrg } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { seedDashboardData, unseedDashboardData } from "@/lib/seedDashboard";
 import { AiInsights } from "@/components/AiInsights";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const fadeIn = {
@@ -527,42 +522,8 @@ export default function OrgDashboard() {
   const { data, loading, refresh } = useOrgDashboard();
   const { currentOrg, orgRole } = useOrg();
   const { user } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
-  const [seeding, setSeeding] = useState(false);
-
   const isAdmin = orgRole === "admin";
-
-  const handleSeed = async () => {
-    if (!currentOrg || !user) return;
-    setSeeding(true);
-    try {
-      const counts = await seedDashboardData(currentOrg.id, user.id);
-      toast({
-        title: "Demo data seeded",
-        description: `${counts.templates} templates, ${counts.contacts} contacts, ${counts.campaigns} campaigns, ${counts.messages} messages`,
-      });
-      refresh();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Seed failed", description: e.message });
-    } finally {
-      setSeeding(false);
-    }
-  };
-
-  const handleUnseed = async () => {
-    if (!currentOrg) return;
-    setSeeding(true);
-    try {
-      await unseedDashboardData(currentOrg.id);
-      toast({ title: "Demo data removed" });
-      refresh();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Unseed failed", description: e.message });
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   const userName = user?.email?.split("@")[0] || "there";
 
@@ -592,12 +553,6 @@ export default function OrgDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleSeed} disabled={seeding || loading}>
-              <Database className="mr-1 h-3.5 w-3.5" /> Seed Demo
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleUnseed} disabled={seeding || loading} className="text-destructive hover:text-destructive">
-              <Trash2 className="mr-1 h-3.5 w-3.5" /> Unseed
-            </Button>
             <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
               <RefreshCw className={`mr-1 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
               Refresh
