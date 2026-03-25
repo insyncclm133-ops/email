@@ -27,8 +27,8 @@ const features = [
     title: "HTML Email Templates",
     description:
       "Design beautiful email campaigns with our drag-and-drop editor or import custom HTML templates with dynamic merge tags.",
-    gradient: "from-green-500/20 to-emerald-500/20",
-    iconColor: "text-green-500",
+    gradient: "from-blue-500/20 to-cyan-500/20",
+    iconColor: "text-blue-500",
   },
   {
     icon: Users,
@@ -67,8 +67,8 @@ const features = [
     title: "Campaign Analytics",
     description:
       "Monitor every email in real-time with status tracking from sent to delivered to opened to clicked.",
-    gradient: "from-teal-500/20 to-emerald-500/20",
-    iconColor: "text-teal-500",
+    gradient: "from-sky-500/20 to-indigo-500/20",
+    iconColor: "text-sky-500",
   },
 ];
 
@@ -88,7 +88,7 @@ const steps = [
   {
     icon: Users,
     title: "Import Contacts",
-    description: "Upload your audience via CSV or add contacts manually with smart normalization.",
+    description: "Upload your audience via CSV or add contacts manually with automatic deduplication and validation.",
   },
   {
     icon: Send,
@@ -284,7 +284,7 @@ export default function Landing() {
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -top-40 left-1/4 h-[600px] w-[600px] rounded-full bg-primary/8 blur-[120px]" />
           <div className="absolute -bottom-20 right-1/4 h-[400px] w-[400px] rounded-full bg-primary/6 blur-[100px]" />
-          <div className="absolute top-1/3 right-1/3 h-[300px] w-[300px] rounded-full bg-emerald-500/5 blur-[100px]" />
+          <div className="absolute top-1/3 right-1/3 h-[300px] w-[300px] rounded-full bg-sky-500/5 blur-[100px]" />
         </div>
 
         {/* Grid pattern overlay */}
@@ -329,11 +329,11 @@ export default function Landing() {
               <br />
               Campaigns{" "}
               <span className="relative">
-                <span className="bg-gradient-to-r from-primary via-emerald-500 to-primary bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-primary via-sky-400 to-primary bg-clip-text text-transparent">
                   That Convert
                 </span>
                 <motion.span
-                  className="absolute -bottom-2 left-0 h-1 rounded-full bg-gradient-to-r from-primary via-emerald-500 to-primary"
+                  className="absolute -bottom-2 left-0 h-1 rounded-full bg-gradient-to-r from-primary via-sky-400 to-primary"
                   initial={{ width: "0%" }}
                   animate={{ width: "100%" }}
                   transition={{ duration: 0.8, delay: 0.8 }}
@@ -673,7 +673,7 @@ export default function Landing() {
           <AnimatedSection>
             <motion.div
               variants={fadeUp}
-              className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-emerald-600 px-6 py-20 text-center sm:px-16"
+              className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-sky-600 px-6 py-20 text-center sm:px-16"
             >
               {/* Decorative elements */}
               <div className="pointer-events-none absolute inset-0">

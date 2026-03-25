@@ -50,6 +50,7 @@ const SCENES = [
   { id: "dashboard", label: "Dashboard", duration: 12000 },
   { id: "contacts", label: "Contacts", duration: 11000 },
   { id: "campaigns", label: "Campaigns", duration: 12000 },
+  { id: "templates", label: "Templates", duration: 12000 },
   { id: "automations", label: "Drips", duration: 11000 },
   { id: "developers", label: "API", duration: 11000 },
   { id: "compliance", label: "DPDP", duration: 11000 },
@@ -91,6 +92,7 @@ const navItems = [
   { icon: LayoutDashboard, label: "Dashboard" },
   { icon: Users, label: "Contacts" },
   { icon: Megaphone, label: "Campaigns" },
+  { icon: FileText, label: "Templates" },
   { icon: Zap, label: "Automations" },
   { icon: BarChart3, label: "Analytics" },
   { icon: ShieldCheck, label: "Compliance" },
@@ -198,7 +200,7 @@ function MiniBarChart() {
         <div className="flex gap-3 text-[9px] text-muted-foreground">
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-500" /> Sent</span>
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Delivered</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-500" /> Read</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-500" /> Opened</span>
         </div>
       </div>
       <div className="flex items-end gap-2" style={{ height: 100 }}>
@@ -232,7 +234,7 @@ function MiniBarChart() {
 function AiInsights() {
   const [text, setText] = useState("");
   const full =
-    "📊 Campaign delivery up 12% this week — weekend sends outperform weekdays by 3x\n\n🎯 340 contacts dormant 30+ days — I recommend a re-engagement drip sequence\n\n⏰ Read rates peak 10 AM–12 PM IST — schedule your next campaign in this window for maximum impact";
+    "📊 Open rate up 12% this week — Tuesday & Thursday sends outperform weekends by 3x\n\n🎯 340 contacts dormant 30+ days — I recommend a re-engagement drip sequence\n\n⏰ Open rates peak 10 AM–12 PM IST — schedule your next campaign in this window for maximum impact";
 
   useEffect(() => {
     let i = 0;
@@ -295,7 +297,7 @@ function SceneIntro() {
     <motion.div {...fade} className="flex h-full flex-col items-center justify-center bg-background">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-1/3 left-1/4 h-[400px] w-[400px] rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute bottom-1/3 right-1/4 h-[300px] w-[300px] rounded-full bg-emerald-500/8 blur-[100px]" />
+        <div className="absolute bottom-1/3 right-1/4 h-[300px] w-[300px] rounded-full bg-sky-500/8 blur-[100px]" />
       </div>
 
       <motion.div
@@ -362,7 +364,7 @@ function SceneDashboard() {
         <motion.div {...slideUp(0)} className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-foreground">Dashboard</h2>
-            <p className="text-xs text-muted-foreground">Your email campaign command centre</p>
+            <p className="text-xs text-muted-foreground">Your email broadcast command centre</p>
           </div>
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -375,9 +377,9 @@ function SceneDashboard() {
         </motion.div>
 
         <div className="mt-4 grid grid-cols-4 gap-3">
-          <KpiCard label="Messages Sent MTD" value="2,847" change="+18% vs last month" color="from-sky-500 to-blue-600" icon={Send} delay={0.15} />
+          <KpiCard label="Emails Sent MTD" value="2,847" change="+18% vs last month" color="from-sky-500 to-blue-600" icon={Send} delay={0.15} />
           <KpiCard label="Delivery Rate" value="96.3%" change="+2.1% vs last month" color="from-emerald-500 to-green-600" icon={CheckCheck} delay={0.25} />
-          <KpiCard label="Read Rate" value="72.8%" change="+5.4% vs last month" color="from-violet-500 to-purple-600" icon={Eye} delay={0.35} />
+          <KpiCard label="Open Rate" value="42.8%" change="+5.4% vs last month" color="from-violet-500 to-purple-600" icon={Eye} delay={0.35} />
           <KpiCard label="Total Contacts" value="1,204" change="+86 this month" color="from-amber-500 to-orange-600" icon={Users} delay={0.45} />
         </div>
 
@@ -409,11 +411,11 @@ function SceneContacts() {
   }, []);
 
   const allContacts = [
-    { name: "Amit Sharma", phone: "+91 97XX XXX 680", tags: ["VIP", "Active"], source: "Campaign" },
-    { name: "Priya Patel", phone: "+91 98XX XXX 412", tags: ["VIP"], source: "Manual" },
-    { name: "Raj Kumar", phone: "+91 87XX XXX 901", tags: ["New"], source: "CSV" },
-    { name: "Sneha Iyer", phone: "+91 96XX XXX 234", tags: ["VIP", "Enterprise"], source: "Form" },
-    { name: "Vikram Desai", phone: "+91 99XX XXX 567", tags: ["Active"], source: "Inbound" },
+    { name: "Amit Sharma", email: "amit.sharma@acmecorp.com", tags: ["VIP", "Active"], source: "Campaign" },
+    { name: "Priya Patel", email: "priya.patel@designhub.io", tags: ["VIP"], source: "Manual" },
+    { name: "Raj Kumar", email: "raj.kumar@techstart.in", tags: ["New"], source: "CSV" },
+    { name: "Sneha Iyer", email: "sneha@iyer-consulting.com", tags: ["VIP", "Enterprise"], source: "Form" },
+    { name: "Vikram Desai", email: "vikram.d@globalfin.co", tags: ["Active"], source: "Inbound" },
   ];
 
   const contacts = step >= 2 ? allContacts.filter((c) => c.tags.includes("VIP")) : allContacts;
@@ -478,7 +480,7 @@ function SceneContacts() {
           <div className="flex items-center border-b border-border/40 bg-muted/30 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             {step >= 5 && <div className="w-6 shrink-0" />}
             <div className="flex-[2]">Name</div>
-            <div className="flex-[2]">Phone</div>
+            <div className="flex-[2]">Email</div>
             <div className="flex-[2]">Tags</div>
             <div className="flex-1">Source</div>
           </div>
@@ -499,7 +501,7 @@ function SceneContacts() {
                   </div>
                   <span className="text-xs font-medium text-foreground">{c.name}</span>
                 </div>
-                <span className="flex-[2] text-xs text-muted-foreground">{c.phone}</span>
+                <span className="flex-[2] text-xs text-muted-foreground">{c.email}</span>
                 <div className="flex flex-[2] gap-1">
                   {c.tags.map((t) => (
                     <span key={t} className="rounded-full bg-primary/10 px-2 py-0.5 text-[8px] font-medium text-primary">{t}</span>
@@ -665,25 +667,267 @@ function SceneCampaigns() {
           </div>
 
           {/* Right: Email preview */}
-          <motion.div {...slideLeft(0.4)} className="w-52 shrink-0">
+          <motion.div {...slideLeft(0.4)} className="w-56 shrink-0">
             <div className="rounded-xl border border-border/60 bg-card p-3">
-              <p className="mb-2 text-xs font-semibold text-foreground">Message Preview</p>
-              <div className="rounded-lg bg-[#e5ddd5] p-2.5">
-                <div className="rounded-lg rounded-tl-none bg-white p-2 shadow-sm">
-                  <div className="mb-1.5 aspect-video overflow-hidden rounded bg-gradient-to-br from-primary/20 to-emerald-500/20 flex items-center justify-center">
+              <p className="mb-2 text-xs font-semibold text-foreground">Email Preview</p>
+              <div className="rounded-lg border border-border/40 bg-white overflow-hidden">
+                {/* Email header */}
+                <div className="border-b border-gray-100 px-2.5 py-2 space-y-1">
+                  <div className="flex items-center gap-1 text-[8px]">
+                    <span className="text-gray-400">From:</span>
+                    <span className="font-medium text-gray-700">Acme Corp &lt;promo@acmecorp.com&gt;</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[8px]">
+                    <span className="text-gray-400">Subject:</span>
+                    <span className="font-semibold text-gray-900">Get 20% OFF this March!</span>
+                  </div>
+                </div>
+                {/* Email body */}
+                <div className="px-2.5 py-2">
+                  <div className="mb-2 aspect-[2/1] overflow-hidden rounded bg-gradient-to-br from-primary/20 to-sky-500/20 flex items-center justify-center">
                     <span className="text-[8px] text-primary font-medium">Promo Banner</span>
                   </div>
-                  <p className="text-[10px] leading-relaxed text-gray-900">
-                    Hi <strong>Amit</strong>! 🎉{"\n\n"}
-                    Get <strong>20% OFF</strong> this March!{"\n\n"}
-                    Code: <strong>MARCH20</strong>{"\n"}
-                    Valid till 31st March.
+                  <p className="text-[9px] leading-relaxed text-gray-800">
+                    Hi <strong>Amit</strong>,<br /><br />
+                    Get <strong>20% OFF</strong> on all plans this March!<br /><br />
+                    Use code: <strong className="text-primary">MARCH20</strong><br />
+                    <span className="text-gray-500">Valid till 31st March 2026.</span>
                   </p>
-                  <p className="mt-1 text-right text-[8px] text-gray-400">10:30 AM</p>
+                  <div className="mt-2 flex justify-center">
+                    <span className="rounded bg-primary px-3 py-1 text-[8px] font-semibold text-white">Shop Now</span>
+                  </div>
+                  <p className="mt-2 text-center text-[7px] text-gray-300">Unsubscribe · Acme Corp, Mumbai, India</p>
                 </div>
               </div>
             </div>
           </motion.div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ── Scene: Email Templates ───────────────────────────── */
+
+function SceneTemplates() {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setStep(1), 1200),
+      setTimeout(() => setStep(2), 3000),
+      setTimeout(() => setStep(3), 5000),
+      setTimeout(() => setStep(4), 7000),
+      setTimeout(() => setStep(5), 9000),
+      setTimeout(() => setStep(6), 10500),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  return (
+    <motion.div {...fade} className="flex h-full">
+      <MockSidebar active="Templates" />
+      <div className="flex flex-1 overflow-hidden">
+        {/* Template list */}
+        <motion.div {...slideRight(0.1)} className="w-48 shrink-0 border-r border-border/60 bg-card">
+          <div className="border-b border-border/40 p-2.5">
+            <div className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[10px] font-semibold text-primary-foreground">
+              <FileText className="h-3 w-3" /> New Template
+            </div>
+          </div>
+          <div className="space-y-0.5 p-2">
+            {[
+              { name: "Welcome Email", status: "Active", type: "Onboarding" },
+              { name: "March Promo", status: "Active", type: "Marketing" },
+              { name: "Order Confirmation", status: "Active", type: "Transactional" },
+              { name: "Re-engagement", status: "Draft", type: "Marketing" },
+              { name: "Monthly Newsletter", status: "Active", type: "Newsletter" },
+            ].map((t, i) => (
+              <motion.div
+                key={t.name}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0, transition: { delay: 0.2 + i * 0.08 } }}
+                className={`rounded-lg px-2.5 py-2 ${i === 0 ? "bg-accent" : ""}`}
+              >
+                <p className="text-[10px] font-medium text-foreground">{t.name}</p>
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  <span className={`rounded-full px-1.5 py-0.5 text-[7px] font-medium ${
+                    t.status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"
+                  }`}>{t.status}</span>
+                  <span className="text-[7px] text-muted-foreground">{t.type}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Template editor area */}
+        <div className="flex-1 p-5 overflow-hidden">
+          <motion.div {...slideUp(0)} className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Welcome Email</h2>
+              <p className="text-xs text-muted-foreground">Onboarding template · Last edited 2 hours ago</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {step >= 5 && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="flex items-center gap-1.5 text-[10px] text-emerald-600">
+                  <CheckCircle className="h-3.5 w-3.5" /> Saved
+                </motion.div>
+              )}
+              <div className="rounded-lg bg-primary px-3 py-1.5 text-[10px] font-semibold text-primary-foreground">Save</div>
+            </div>
+          </motion.div>
+
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            {/* Left: Settings & merge tags */}
+            <div className="space-y-3">
+              {/* Subject line */}
+              <motion.div {...slideUp(0.2)} className="rounded-xl border border-border/60 bg-card p-3">
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Subject Line</p>
+                <div className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground">
+                  <TypewriterText text="Welcome to Acme Corp, {{name}}!" delay={0.4} speed={35} />
+                </div>
+              </motion.div>
+
+              {/* Preview text */}
+              <AnimatePresence>
+                {step >= 1 && (
+                  <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl border border-border/60 bg-card p-3">
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Preview Text</p>
+                    <div className="rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
+                      Your account is ready. Here's what you can do first...
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* From address */}
+              <AnimatePresence>
+                {step >= 2 && (
+                  <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl border border-border/60 bg-card p-3">
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">From</p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground">
+                        Acme Corp
+                      </div>
+                      <div className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground">
+                        hello@acmecorp.com
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Merge tags */}
+              <AnimatePresence>
+                {step >= 3 && (
+                  <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl border border-border/60 bg-card p-3">
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Available Merge Tags</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {["{{name}}", "{{email}}", "{{company}}", "{{unsubscribe_url}}"].map((tag, i) => (
+                        <motion.span key={tag}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1, transition: { delay: i * 0.1 } }}
+                          className="rounded-md border border-primary/30 bg-primary/5 px-2 py-1 font-mono text-[9px] font-medium text-primary">
+                          {tag}
+                        </motion.span>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* HTML toggle */}
+              <AnimatePresence>
+                {step >= 4 && (
+                  <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl border border-border/60 bg-card p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Code2 className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-xs font-semibold text-foreground">HTML Source</span>
+                      </div>
+                      <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-1">
+                        <span className="rounded-md bg-background px-2.5 py-1 text-[9px] font-medium text-foreground shadow-sm">Visual</span>
+                        <span className="rounded-md px-2.5 py-1 text-[9px] font-medium text-muted-foreground">HTML</span>
+                      </div>
+                    </div>
+                    <div className="mt-2 rounded-lg border border-border bg-background p-2 font-mono text-[8px] text-muted-foreground leading-relaxed">
+                      &lt;h1&gt;Welcome, {"{{name}}"}!&lt;/h1&gt;<br />
+                      &lt;p&gt;Your account is ready.&lt;/p&gt;<br />
+                      &lt;a href="..."&gt;Get Started&lt;/a&gt;
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Right: Live email preview */}
+            <motion.div {...slideLeft(0.3)} className="rounded-xl border border-border/60 bg-card p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-semibold text-foreground">Live Preview</p>
+                <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                  <Eye className="h-3 w-3" /> Desktop
+                </div>
+              </div>
+              <div className="rounded-lg border border-border/40 bg-white overflow-hidden">
+                {/* Email header */}
+                <div className="border-b border-gray-100 bg-gray-50/50 px-3 py-2 space-y-0.5">
+                  <div className="flex items-center gap-1 text-[8px]">
+                    <span className="text-gray-400">From:</span>
+                    <span className="font-medium text-gray-700">Acme Corp &lt;hello@acmecorp.com&gt;</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[8px]">
+                    <span className="text-gray-400">Subject:</span>
+                    <span className="font-semibold text-gray-900">Welcome to Acme Corp, Amit!</span>
+                  </div>
+                </div>
+                {/* Email body */}
+                <div className="px-4 py-3 text-center">
+                  <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                    <Mail className="h-5 w-5 text-primary" />
+                  </div>
+                  <p className="text-sm font-bold text-gray-900">Welcome, Amit!</p>
+                  <p className="mt-1.5 text-[9px] leading-relaxed text-gray-600">
+                    Your account is ready. Here's how to get the most out of Acme Corp's email platform.
+                  </p>
+                  <div className="mt-3 space-y-1.5">
+                    {step >= 6 ? (
+                      [
+                        { step: "1", text: "Verify your sending domain" },
+                        { step: "2", text: "Import your contact list" },
+                        { step: "3", text: "Create your first campaign" },
+                      ].map((s, i) => (
+                        <motion.div key={s.step}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0, transition: { delay: i * 0.15 } }}
+                          className="flex items-center gap-2 rounded-md bg-gray-50 px-2 py-1 text-left">
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary text-[7px] font-bold text-white">{s.step}</span>
+                          <span className="text-[8px] text-gray-700">{s.text}</span>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="h-5 w-full rounded bg-gray-100 animate-pulse" />
+                        <div className="h-5 w-full rounded bg-gray-100 animate-pulse" />
+                        <div className="h-5 w-3/4 mx-auto rounded bg-gray-100 animate-pulse" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-3">
+                    <span className="rounded-md bg-primary px-4 py-1.5 text-[9px] font-semibold text-white">Get Started</span>
+                  </div>
+                  <p className="mt-3 text-[7px] text-gray-300">
+                    Acme Corp, Mumbai, India · <span className="underline">Unsubscribe</span>
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -776,11 +1020,11 @@ function SceneAutomations() {
                 <p className="mb-2 text-[10px] font-semibold text-foreground">Steps</p>
                 <div className="space-y-0">
                   {[
-                    { order: 1, icon: Send, type: "Send Template", detail: "welcome_offer", color: "text-blue-600" },
+                    { order: 1, icon: Send, type: "Send Email", detail: "welcome_offer", color: "text-blue-600" },
                     { order: 2, icon: Clock, type: "Wait", detail: "24 hours", color: "text-amber-600" },
-                    { order: 3, icon: GitBranch, type: "Condition", detail: "Read → Step 4 · No Response → Step 5", color: "text-orange-600" },
-                    { order: 4, icon: Send, type: "Send Template", detail: "product_catalog", color: "text-blue-600" },
-                    { order: 5, icon: Send, type: "Send Template", detail: "reminder_followup", color: "text-blue-600" },
+                    { order: 3, icon: GitBranch, type: "Condition", detail: "Opened → Step 4 · No Open → Step 5", color: "text-orange-600" },
+                    { order: 4, icon: Send, type: "Send Email", detail: "product_catalog", color: "text-blue-600" },
+                    { order: 5, icon: Send, type: "Send Email", detail: "reminder_followup", color: "text-blue-600" },
                   ].map((s, i) => (
                     <motion.div key={s.order}
                       initial={{ opacity: 0, x: -15 }}
@@ -855,10 +1099,10 @@ function SceneAutomations() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               className="mt-3 flex items-center gap-3 rounded-xl border border-dashed border-primary/30 bg-primary/[0.03] p-3">
               <p className="text-[10px] text-muted-foreground">
-                Build multi-step flows with <strong className="text-foreground">Send Template</strong>,{" "}
+                Build multi-step flows with <strong className="text-foreground">Send Email</strong>,{" "}
                 <strong className="text-foreground">Wait</strong>, and{" "}
                 <strong className="text-foreground">Condition</strong> steps.
-                Branch based on read/delivered/replied status.
+                Branch based on opened/clicked/bounced status.
               </p>
             </motion.div>
           )}
@@ -1177,9 +1421,9 @@ function SceneCompliance() {
                 <p className="mb-2 text-xs font-semibold text-foreground">Recent Consents</p>
                 <div className="space-y-1.5">
                   {[
-                    { user: "+91 97XX...680", purpose: "Marketing communications", status: "Active" },
-                    { user: "+91 98XX...412", purpose: "Service notifications", status: "Active" },
-                    { user: "+91 87XX...901", purpose: "Marketing communications", status: "Withdrawn" },
+                    { user: "amit.s@acmecorp.com", purpose: "Marketing communications", status: "Active" },
+                    { user: "priya.p@designhub.io", purpose: "Service notifications", status: "Active" },
+                    { user: "raj.k@techstart.in", purpose: "Marketing communications", status: "Withdrawn" },
                   ].map((c, i) => (
                     <motion.div key={i}
                       initial={{ opacity: 0 }}
@@ -1482,6 +1726,7 @@ export default function Demo() {
       case "dashboard": return <SceneDashboard />;
       case "contacts": return <SceneContacts />;
       case "campaigns": return <SceneCampaigns />;
+      case "templates": return <SceneTemplates />;
       case "automations": return <SceneAutomations />;
       case "developers": return <SceneDevelopers />;
       case "compliance": return <SceneCompliance />;
