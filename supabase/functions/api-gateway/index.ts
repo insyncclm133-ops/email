@@ -12,8 +12,6 @@ const corsHeaders = {
  *   GET    /contacts
  *   POST   /contacts
  *   GET    /messages?contact_id=...
- *   POST   /messages/send
- *   GET    /conversations
  *   GET    /templates
  */
 serve(async (req) => {
@@ -77,7 +75,6 @@ serve(async (req) => {
     const pathParts = url.pathname.split("/").filter(Boolean);
     // Path: /api-gateway/<resource>[/<id>]
     const resource = pathParts[1] || "";
-    const resourceId = pathParts[2] || "";
     const method = req.method;
 
     // GET /contacts
@@ -92,7 +89,7 @@ serve(async (req) => {
       const offset = parseInt(url.searchParams.get("offset") || "0");
       const { data, count } = await supabase
         .from("contacts")
-        .select("id, name, phone_number, email, tags, source, created_at, custom_fields", { count: "exact" })
+        .select("id, name, email, phone_number, tags, source, created_at, custom_fields", { count: "exact" })
         .eq("org_id", orgId)
         .range(offset, offset + limit - 1)
         .order("created_at", { ascending: false });
@@ -113,9 +110,9 @@ serve(async (req) => {
         .from("contacts")
         .upsert(
           {
-            phone_number: body.phone_number,
+            email: body.email,
             name: body.name || null,
-            email: body.email || null,
+            phone_number: body.phone_number || null,
             tags: body.tags || [],
             source: body.source || "api",
             org_id: orgId,
@@ -139,70 +136,18 @@ serve(async (req) => {
         });
       }
       const contactId = url.searchParams.get("contact_id");
-      const conversationId = url.searchParams.get("conversation_id");
+      const campaignId = url.searchParams.get("campaign_id");
       const limit = parseInt(url.searchParams.get("limit") || "50");
 
       let query = supabase
         .from("messages")
-        .select("id, content, direction, status, media_url, message_type, interactive_data, sent_at, created_at")
+        .select("id, content, subject, direction, status, sent_at, created_at, opened_at, clicked_at, bounced_at")
         .eq("org_id", orgId)
         .order("created_at", { ascending: false })
         .limit(limit);
 
       if (contactId) query = query.eq("contact_id", contactId);
-      if (conversationId) query = query.eq("conversation_id", conversationId);
-
-      const { data } = await query;
-      return jsonResponse({ data });
-    }
-
-    // POST /messages/send
-    if (resource === "messages" && resourceId === "send" && method === "POST") {
-      if (!scopes.includes("write")) {
-        return new Response(JSON.stringify({ error: "Insufficient scope" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const body = await req.json();
-      // Forward to send-reply edge function
-      const res = await fetch(`${supabaseUrl}/functions/v1/send-reply`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${supabaseServiceKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          conversation_id: body.conversation_id,
-          content: body.content || body.message,
-          media_url: body.media_url,
-          message_type: body.message_type,
-          interactive_data: body.interactive_data,
-        }),
-      });
-      const result = await res.json();
-      return jsonResponse(result, res.status);
-    }
-
-    // GET /conversations
-    if (resource === "conversations" && method === "GET") {
-      if (!scopes.includes("read")) {
-        return new Response(JSON.stringify({ error: "Insufficient scope" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const limit = parseInt(url.searchParams.get("limit") || "50");
-      const status = url.searchParams.get("status");
-
-      let query = supabase
-        .from("conversations")
-        .select("id, phone_number, last_message_at, last_message_preview, unread_count, status, assigned_to, ai_enabled, contacts(id, name, phone_number)")
-        .eq("org_id", orgId)
-        .order("last_message_at", { ascending: false })
-        .limit(limit);
-
-      if (status) query = query.eq("status", status);
+      if (campaignId) query = query.eq("campaign_id", campaignId);
 
       const { data } = await query;
       return jsonResponse({ data });
@@ -218,7 +163,7 @@ serve(async (req) => {
       }
       const { data } = await supabase
         .from("templates")
-        .select("id, name, content, category, language, status, buttons, carousel_cards")
+        .select("id, name, content, subject, html_content, category, status")
         .eq("org_id", orgId)
         .order("name");
 

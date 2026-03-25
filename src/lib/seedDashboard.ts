@@ -15,7 +15,6 @@ export async function seedDashboardData(orgId: string, userId: string) {
     { name: "welcome_message", category: "marketing", content: "Hi {{1}}! Welcome to our store. Enjoy 10% off your first order with code WELCOME10.", language: "en" },
     { name: "order_confirmation", category: "utility", content: "Hello {{1}}, your order #{{2}} has been confirmed and will be shipped within 2 business days.", language: "en" },
     { name: "shipping_update", category: "utility", content: "Hi {{1}}, your order #{{2}} has been shipped! Track it here: {{3}}", language: "en" },
-    { name: "otp_verification", category: "authentication", content: "Your verification code is {{1}}. It expires in 10 minutes. Do not share this code.", language: "en" },
     { name: "flash_sale", category: "marketing", content: "Flash Sale! {{1}}, get up to 50% off on all items. Offer ends tonight at midnight. Shop now!", language: "en" },
     { name: "feedback_request", category: "marketing", content: "Hi {{1}}, we'd love your feedback on your recent purchase. Reply with a rating from 1-5.", language: "en" },
     { name: "payment_reminder", category: "utility", content: "Hi {{1}}, this is a reminder that your payment of {{2}} is due on {{3}}. Please pay to avoid late fees.", language: "en" },
@@ -30,7 +29,7 @@ export async function seedDashboardData(orgId: string, userId: string) {
         org_id: orgId,
         user_id: userId,
         status: "approved",
-        exotel_template_id: SEED_TAG,
+        description: SEED_TAG,
       }))
     )
     .select("id, category");
@@ -75,7 +74,7 @@ export async function seedDashboardData(orgId: string, userId: string) {
     { name: "Payment Reminders Q1", templateIdx: 6, status: "completed", daysAgo: 4 },
     { name: "Welcome New Users", templateIdx: 0, status: "completed", daysAgo: 5 },
     { name: "Shipping Notifications", templateIdx: 2, status: "sending", daysAgo: 0 },
-    { name: "OTP Campaign", templateIdx: 3, status: "completed", daysAgo: 6 },
+    { name: "Promo Blast", templateIdx: 3, status: "completed", daysAgo: 6 },
     { name: "Feedback Collection", templateIdx: 5, status: "scheduled", daysAgo: -1 },
     { name: "Security Alerts", templateIdx: 7, status: "completed", daysAgo: 8 },
     { name: "Re-engagement Push", templateIdx: 4, status: "draft", daysAgo: 0 },
@@ -186,5 +185,5 @@ export async function unseedDashboardData(orgId: string) {
   // Contacts
   await supabase.from("contacts").delete().eq("org_id", orgId).eq("source", SEED_TAG);
   // Templates
-  await supabase.from("templates").delete().eq("org_id", orgId).eq("exotel_template_id", SEED_TAG);
+  await supabase.from("templates").delete().eq("org_id", orgId).eq("description", SEED_TAG);
 }

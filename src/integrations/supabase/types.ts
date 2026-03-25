@@ -232,7 +232,7 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           error_message: string | null
-          exotel_message_id: string | null
+
           resend_message_id: string | null
           id: string
           interactive_data: Record<string, unknown> | null
@@ -257,7 +257,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           error_message?: string | null
-          exotel_message_id?: string | null
+
           resend_message_id?: string | null
           id?: string
           interactive_data?: Record<string, unknown> | null
@@ -282,7 +282,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           error_message?: string | null
-          exotel_message_id?: string | null
+
           resend_message_id?: string | null
           id?: string
           interactive_data?: Record<string, unknown> | null
@@ -364,12 +364,7 @@ export type Database = {
         Row: {
           id: string
           org_id: string
-          exotel_api_key: string | null
-          exotel_api_token: string | null
-          exotel_subdomain: string | null
-          exotel_waba_id: string | null
-          exotel_account_sid: string | null
-          exotel_sender_number: string | null
+
           from_email: string | null
           from_name: string | null
           from_domain: string | null
@@ -381,12 +376,7 @@ export type Database = {
         Insert: {
           id?: string
           org_id: string
-          exotel_api_key?: string | null
-          exotel_api_token?: string | null
-          exotel_subdomain?: string | null
-          exotel_waba_id?: string | null
-          exotel_account_sid?: string | null
-          exotel_sender_number?: string | null
+
           from_email?: string | null
           from_name?: string | null
           from_domain?: string | null
@@ -398,12 +388,7 @@ export type Database = {
         Update: {
           id?: string
           org_id?: string
-          exotel_api_key?: string | null
-          exotel_api_token?: string | null
-          exotel_subdomain?: string | null
-          exotel_waba_id?: string | null
-          exotel_account_sid?: string | null
-          exotel_sender_number?: string | null
+
           from_email?: string | null
           from_name?: string | null
           from_domain?: string | null
@@ -581,7 +566,7 @@ export type Database = {
           category: string | null
           content: string
           created_at: string
-          exotel_template_id: string | null
+
           id: string
           language: string | null
           name: string
@@ -598,7 +583,7 @@ export type Database = {
           category?: string | null
           content: string
           created_at?: string
-          exotel_template_id?: string | null
+
           id?: string
           language?: string | null
           name: string
@@ -615,7 +600,7 @@ export type Database = {
           category?: string | null
           content?: string
           created_at?: string
-          exotel_template_id?: string | null
+
           id?: string
           language?: string | null
           name?: string

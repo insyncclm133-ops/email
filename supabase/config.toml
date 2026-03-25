@@ -1,15 +1,6 @@
 project_id = "nlntxjvavqucsgghiybb"
 
-[functions.manage-templates]
-verify_jwt = false
-
 [functions.manage-users]
-verify_jwt = false
-
-[functions.send-otp]
-verify_jwt = false
-
-[functions.verify-otp]
 verify_jwt = false
 
 [functions.send-email]
@@ -18,31 +9,13 @@ verify_jwt = false
 [functions.manage-org]
 verify_jwt = false
 
-[functions.whatsapp-onboarding]
-verify_jwt = false
-
 [functions.billing]
 verify_jwt = false
 
 [functions.send-campaign]
 verify_jwt = false
 
-[functions.whatsapp-webhook]
-verify_jwt = false
-
-[functions.ai-reply]
-verify_jwt = false
-
-[functions.send-reply]
-verify_jwt = false
-
 [functions.ai-insights]
-verify_jwt = false
-
-[functions.run-automations]
-verify_jwt = false
-
-[functions.execute-flow]
 verify_jwt = false
 
 [functions.fire-webhook]
@@ -58,7 +31,4 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.manage-domains]
-verify_jwt = false
-
-[functions.send-template-message]
 verify_jwt = false

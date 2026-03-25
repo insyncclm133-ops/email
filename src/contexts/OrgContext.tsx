@@ -41,7 +41,7 @@ const OrgContext = createContext<OrgContextType>({
 
 export const useOrg = () => useContext(OrgContext);
 
-const LS_KEY = "wa_current_org_id";
+const LS_KEY = "current_org_id";
 
 export function OrgProvider({ children }: { children: ReactNode }) {
   const { user, isPlatformAdmin, loading: authLoading } = useAuth();

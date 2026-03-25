@@ -10,9 +10,8 @@ const corsHeaders = {
 const GST_RATE = 0.18;
 const PLATFORM_FEE = 1500;
 const RATES: Record<string, number> = {
-  marketing: 1.0,
-  utility: 0.2,
-  authentication: 0.2,
+  marketing: 0.5,
+  transactional: 0.2,
 };
 
 serve(async (req) => {
@@ -187,7 +186,7 @@ serve(async (req) => {
         campaignCategories[c.id] = c.message_category || "marketing";
       }
 
-      let marketing = 0, utility = 0, auth = 0;
+      let marketing = 0, transactional = 0;
 
       if (campaignIds.length > 0) {
         const { data: messages } = await supabase
@@ -200,16 +199,14 @@ serve(async (req) => {
 
         for (const msg of (messages || [])) {
           const cat = campaignCategories[msg.campaign_id] || "marketing";
-          if (cat === "marketing") marketing++;
-          else if (cat === "utility") utility++;
-          else if (cat === "authentication") auth++;
+          if (cat === "transactional") transactional++;
+          else marketing++;
         }
       }
 
       const marketingCost = marketing * RATES.marketing;
-      const utilityCost = utility * RATES.utility;
-      const authCost = auth * RATES.authentication;
-      const subtotal = marketingCost + utilityCost + authCost + PLATFORM_FEE;
+      const transactionalCost = transactional * RATES.transactional;
+      const subtotal = marketingCost + transactionalCost + PLATFORM_FEE;
       const gst = Math.round(subtotal * GST_RATE * 100) / 100;
 
       return new Response(JSON.stringify({
@@ -217,8 +214,7 @@ serve(async (req) => {
         month: targetMonth,
         usage: {
           marketing: { count: marketing, cost: marketingCost, rate: RATES.marketing },
-          utility: { count: utility, cost: utilityCost, rate: RATES.utility },
-          authentication: { count: auth, cost: authCost, rate: RATES.authentication },
+          transactional: { count: transactional, cost: transactionalCost, rate: RATES.transactional },
         },
         platform_fee: PLATFORM_FEE,
         subtotal,
@@ -251,8 +247,7 @@ serve(async (req) => {
         success: true,
         pricing: {
           marketing: RATES.marketing,
-          utility: RATES.utility,
-          authentication: RATES.authentication,
+          transactional: RATES.transactional,
           platform_fee: PLATFORM_FEE,
           gst_rate: GST_RATE,
         },

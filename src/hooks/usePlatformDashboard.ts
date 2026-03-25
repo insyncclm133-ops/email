@@ -97,13 +97,13 @@ const EMPTY_DATA: PlatformDashboardData = {
 
 function categorizeError(msg: string): string {
   const lower = msg.toLowerCase();
-  if (lower.includes("invalid") && lower.includes("phone")) return "Invalid Phone Numbers";
-  if (lower.includes("template") && (lower.includes("not approved") || lower.includes("unapproved"))) return "Unapproved Templates";
+  if (lower.includes("invalid") && lower.includes("email")) return "Invalid Email Addresses";
+  if (lower.includes("bounce")) return "Bounced Emails";
   if (lower.includes("rate") && lower.includes("limit")) return "API Rate Limiting";
   if (lower.includes("balance") || lower.includes("credit")) return "Insufficient Balance";
-  if (lower.includes("opt") && lower.includes("out")) return "Opted-Out Recipients";
+  if (lower.includes("unsubscrib") || (lower.includes("opt") && lower.includes("out"))) return "Unsubscribed Recipients";
   if (lower.includes("timeout")) return "API Timeouts";
-  if (lower.includes("media") && (lower.includes("large") || lower.includes("size"))) return "Media Size Issues";
+  if (lower.includes("spam") || lower.includes("blocked")) return "Spam/Blocked";
   return "Other Errors";
 }
 
@@ -111,26 +111,26 @@ function buildRecommendations(patterns: ErrorPattern[]): string[] {
   const recs: string[] = [];
   for (const p of patterns) {
     switch (p.category) {
-      case "Invalid Phone Numbers":
-        recs.push("Validate phone number formats before importing contacts (E.164 format recommended).");
+      case "Invalid Email Addresses":
+        recs.push("Validate email addresses before importing contacts to reduce bounces.");
         break;
-      case "Unapproved Templates":
-        recs.push("Review template content and ensure email subjects are configured before sending campaigns.");
+      case "Bounced Emails":
+        recs.push("Remove hard-bounced contacts and verify domain DNS records (SPF, DKIM, DMARC).");
         break;
       case "API Rate Limiting":
         recs.push("Reduce sending speed or stagger campaigns to avoid API rate limits.");
         break;
       case "Insufficient Balance":
-        recs.push("Top up API credits for affected organizations to resume message delivery.");
+        recs.push("Top up credits for affected organizations to resume email delivery.");
         break;
-      case "Opted-Out Recipients":
-        recs.push("Remove opted-out contacts from campaign lists to improve delivery rates.");
+      case "Unsubscribed Recipients":
+        recs.push("Remove unsubscribed contacts from campaign lists to maintain sender reputation.");
         break;
       case "API Timeouts":
-        recs.push("Check API provider status and consider retry mechanisms for timed-out messages.");
+        recs.push("Check email provider status and consider retry mechanisms for timed-out sends.");
         break;
-      case "Media Size Issues":
-        recs.push("Ensure email content is well-formatted and within reasonable size limits.");
+      case "Spam/Blocked":
+        recs.push("Review email content for spam triggers and check domain reputation.");
         break;
       case "Other Errors":
         recs.push("Review unclassified errors in the message logs for additional troubleshooting.");

@@ -433,7 +433,7 @@ function SceneContacts() {
     { name: "Amit Sharma", phone: "+91 97XX XXX 680", tags: ["VIP", "Active"], source: "Campaign" },
     { name: "Priya Patel", phone: "+91 98XX XXX 412", tags: ["VIP"], source: "Manual" },
     { name: "Raj Kumar", phone: "+91 87XX XXX 901", tags: ["New"], source: "CSV" },
-    { name: "Sneha Iyer", phone: "+91 96XX XXX 234", tags: ["VIP", "Enterprise"], source: "CTWA" },
+    { name: "Sneha Iyer", phone: "+91 96XX XXX 234", tags: ["VIP", "Enterprise"], source: "Form" },
     { name: "Vikram Desai", phone: "+91 99XX XXX 567", tags: ["Active"], source: "Inbound" },
   ];
 
@@ -1663,9 +1663,8 @@ function SceneBilling() {
             </div>
             <div className="space-y-2">
               {[
-                { type: "Marketing", rate: "₹1.00", color: "bg-emerald-500", desc: "Promotions, offers, announcements" },
-                { type: "Utility", rate: "₹0.20", color: "bg-sky-500", desc: "Order updates, reminders, alerts" },
-                { type: "Authentication", rate: "₹0.20", color: "bg-violet-500", desc: "OTPs, verification codes" },
+                { type: "Marketing", rate: "₹0.50", color: "bg-emerald-500", desc: "Promotions, offers, announcements" },
+                { type: "Transactional", rate: "₹0.20", color: "bg-sky-500", desc: "Order updates, reminders, alerts" },
               ].map((p, i) => (
                 <motion.div key={p.type}
                   initial={{ opacity: 0, x: 20 }}

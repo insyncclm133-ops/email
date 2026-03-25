@@ -1,12 +1,12 @@
-# WhatsApp Campaign Manager
+# Email Broadcast Platform
 
-A WhatsApp campaign management application for sending bulk messages via Exotel's WhatsApp Business API.
+A multi-tenant email broadcast platform for sending campaigns via Resend API.
 
 ## Tech Stack
 
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui
 - **Backend**: Supabase (Auth, Database, Edge Functions, Storage)
-- **Messaging**: Exotel WhatsApp Business API
+- **Email**: Resend API
 - **Hosting**: Azure Static Web Apps
 - **CI/CD**: GitHub Actions
 
@@ -14,8 +14,8 @@ A WhatsApp campaign management application for sending bulk messages via Exotel'
 
 ```sh
 # Clone the repository
-git clone https://github.com/insyncclm75-stack/WA.git
-cd WA
+git clone https://github.com/insyncclm133-ops/email.git
+cd email
 
 # Install dependencies
 npm install
@@ -35,5 +35,5 @@ See `.env.example` for required frontend variables. Edge function secrets are co
 ## Deployment
 
 Pushes to `main` automatically trigger deployment via GitHub Actions:
-- Frontend builds and deploys to Azure Static Web Apps
 - Supabase migrations are pushed and edge functions deployed
+- Frontend builds and deploys to Azure Static Web Apps
