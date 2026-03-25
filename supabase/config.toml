@@ -1,4 +1,4 @@
-project_id = "pyfdocfoahwjvjvlfbwd"
+project_id = "nlntxjvavqucsgghiybb"
 
 [functions.manage-templates]
 verify_jwt = false
@@ -58,4 +58,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.manage-domains]
+verify_jwt = false
+
+[functions.send-template-message]
 verify_jwt = false
