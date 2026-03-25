@@ -20,6 +20,7 @@ import {
   Check,
   Star,
   IndianRupee,
+  ShieldCheck,
 } from "lucide-react";
 
 /* ── data ─────────────────────────────────────────────── */
@@ -64,6 +65,14 @@ const features = [
       "Role-based access, encrypted credentials, and row-level data isolation keep your data safe.",
     gradient: "from-rose-500/20 to-pink-500/20",
     iconColor: "text-rose-500",
+  },
+  {
+    icon: ShieldCheck,
+    title: "DPDP Compliance Built-In",
+    description:
+      "India's first email platform with native DPDP Act compliance — one-click unsubscribe, consent tracking, and data retention controls out of the box.",
+    gradient: "from-emerald-500/20 to-teal-500/20",
+    iconColor: "text-emerald-500",
   },
   {
     icon: BarChart3,
@@ -421,9 +430,9 @@ export default function Landing() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
             >
-              Create your organization, invite your team, and deliver
-              beautifully crafted emails to thousands — all from one powerful
-              multi-tenant dashboard.
+              Enterprise-grade deliverability with built-in SPF, DKIM &amp; DMARC.
+              Create your org, invite your team, and land in inboxes — not spam
+              folders — from one powerful multi-tenant dashboard.
             </motion.p>
 
             {/* CTA buttons */}
@@ -463,7 +472,7 @@ export default function Landing() {
               transition={{ duration: 0.5, delay: 0.6 }}
               className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground"
             >
-              {["No credit card required", "1,000 free emails/month", "Setup in 2 minutes"].map(
+              {["No credit card required", "1,000 free emails/month", "SPF/DKIM/DMARC included", "DPDP-compliant", "Setup in 2 minutes"].map(
                 (t) => (
                   <span key={t} className="flex items-center gap-1.5">
                     <CheckCircle className="h-3.5 w-3.5 text-primary" />
