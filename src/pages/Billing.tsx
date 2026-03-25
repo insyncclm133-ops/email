@@ -23,6 +23,7 @@ import {
   FileText,
   Receipt,
   Loader2,
+  CheckCircle,
 } from "lucide-react";
 
 declare global {
@@ -445,44 +446,81 @@ export default function Billing() {
 
           {/* Pricing Tab */}
           <TabsContent value="pricing">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pricing</CardTitle>
-                <CardDescription>All prices are exclusive of GST (18%)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-lg border p-4 text-center">
-                    <MessageSquare className="mx-auto mb-2 h-8 w-8 text-primary" />
-                    <p className="text-sm text-muted-foreground">Marketing</p>
-                    <p className="text-2xl font-bold">Re 1.00</p>
-                    <p className="text-xs text-muted-foreground">per message sent</p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Free */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Free</CardTitle>
+                  <CardDescription>Get started</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">Free</p>
+                  <p className="text-xs text-muted-foreground mb-4">forever</p>
+                  <ul className="space-y-2 text-sm">
+                    {["1,000 emails/month", "No credit card required", "Single sender domain", "Basic templates"].map((f) => (
+                      <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />{f}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+
+              {/* Starter */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Starter</CardTitle>
+                  <CardDescription>Small teams</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">₹999<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+                  <p className="text-xs text-muted-foreground mb-4">+ 18% GST</p>
+                  <ul className="space-y-2 text-sm">
+                    {["10,000 emails/month", "3 sender domains", "HTML template editor", "Open & click tracking", "Email support"].map((f) => (
+                      <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />{f}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+
+              {/* Growth */}
+              <Card className="border-primary ring-1 ring-primary/20 shadow-lg shadow-primary/10">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Growth</CardTitle>
+                    <Badge className="bg-primary/10 text-primary border-0 text-[10px]">Popular</Badge>
                   </div>
-                  <div className="rounded-lg border p-4 text-center">
-                    <MessageSquare className="mx-auto mb-2 h-8 w-8 text-blue-500" />
-                    <p className="text-sm text-muted-foreground">Utility</p>
-                    <p className="text-2xl font-bold">Re 0.20</p>
-                    <p className="text-xs text-muted-foreground">per message sent</p>
-                  </div>
-                  <div className="rounded-lg border p-4 text-center">
-                    <MessageSquare className="mx-auto mb-2 h-8 w-8 text-amber-500" />
-                    <p className="text-sm text-muted-foreground">Authentication</p>
-                    <p className="text-2xl font-bold">Re 0.20</p>
-                    <p className="text-xs text-muted-foreground">per message sent</p>
-                  </div>
-                  <div className="rounded-lg border p-4 text-center">
-                    <IndianRupee className="mx-auto mb-2 h-8 w-8 text-green-500" />
-                    <p className="text-sm text-muted-foreground">Platform Fee</p>
-                    <p className="text-2xl font-bold">Rs 1,500</p>
-                    <p className="text-xs text-muted-foreground">per month</p>
-                  </div>
-                </div>
-                <p className="mt-4 text-sm text-muted-foreground">
-                  GST at 18% is charged on all amounts. Messages are charged on sent status, not delivery.
-                  Sending requires a positive wallet balance.
-                </p>
-              </CardContent>
-            </Card>
+                  <CardDescription>Scaling businesses</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-primary">₹2,499<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+                  <p className="text-xs text-muted-foreground mb-4">+ 18% GST</p>
+                  <ul className="space-y-2 text-sm">
+                    {["50,000 emails/month", "Unlimited sender domains", "Full automation workflows", "AI Insights", "DPDP compliance tools", "Priority support"].map((f) => (
+                      <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />{f}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+
+              {/* Scale */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Scale</CardTitle>
+                  <CardDescription>High volume</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">₹5,999<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+                  <p className="text-xs text-muted-foreground mb-4">+ 18% GST</p>
+                  <ul className="space-y-2 text-sm">
+                    {["2,00,000 emails/month", "Dedicated IP", "Advanced analytics", "Multi-user / roles", "SLA-backed support"].map((f) => (
+                      <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />{f}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground">
+              All paid plans include 18% GST. Need a custom plan? Contact <a href="mailto:a@in-sync.co.in" className="text-primary hover:underline">a@in-sync.co.in</a>
+            </p>
           </TabsContent>
         </Tabs>
       </div>

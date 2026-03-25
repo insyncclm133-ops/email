@@ -17,6 +17,9 @@ import {
   TrendingUp,
   MousePointerClick,
   FileCode,
+  Check,
+  Star,
+  IndianRupee,
 } from "lucide-react";
 
 /* ── data ─────────────────────────────────────────────── */
@@ -99,6 +102,73 @@ const steps = [
     icon: TrendingUp,
     title: "Track Results",
     description: "Watch opens, clicks, and bounce metrics roll in on your real-time dashboard.",
+  },
+];
+
+const pricingPlans = [
+  {
+    name: "Free",
+    price: "0",
+    period: "forever",
+    description: "Perfect for getting started",
+    highlight: false,
+    features: [
+      "1,000 emails/month",
+      "No credit card required",
+      "Single sender domain",
+      "Basic templates",
+    ],
+    cta: "Start Free",
+    ctaLink: "/login?signup=true",
+  },
+  {
+    name: "Starter",
+    price: "999",
+    period: "/month",
+    description: "For small teams & newsletters",
+    highlight: false,
+    features: [
+      "10,000 emails/month",
+      "3 sender domains",
+      "HTML template editor",
+      "Open & click tracking",
+      "Email support",
+    ],
+    cta: "Get Started",
+    ctaLink: "/login?signup=true",
+  },
+  {
+    name: "Growth",
+    price: "2,499",
+    period: "/month",
+    description: "For scaling businesses",
+    highlight: true,
+    features: [
+      "50,000 emails/month",
+      "Unlimited sender domains",
+      "Full automation workflows",
+      "AI Insights",
+      "DPDP compliance tools",
+      "Priority support",
+    ],
+    cta: "Start Growing",
+    ctaLink: "/login?signup=true",
+  },
+  {
+    name: "Scale",
+    price: "5,999",
+    period: "/month",
+    description: "For high-volume senders",
+    highlight: false,
+    features: [
+      "2,00,000 emails/month",
+      "Dedicated IP",
+      "Advanced analytics",
+      "Multi-user / roles",
+      "SLA-backed support",
+    ],
+    cta: "Contact Sales",
+    ctaLink: "/login?signup=true",
   },
 ];
 
@@ -265,6 +335,9 @@ export default function Landing() {
             </Button>
             <Button variant="ghost" className="hidden sm:inline-flex" asChild>
               <a href="#how-it-works">How It Works</a>
+            </Button>
+            <Button variant="ghost" className="hidden sm:inline-flex" asChild>
+              <a href="#pricing">Pricing</a>
             </Button>
             <Button variant="ghost" asChild>
               <Link to="/login">Sign In</Link>
@@ -663,6 +736,108 @@ export default function Landing() {
                 </div>
               ))}
             </motion.div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* ── Pricing ─────────────────────────────────── */}
+      <section id="pricing" className="relative border-t border-border/50 bg-muted/30">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-1/2 left-1/2 h-[600px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.03] blur-[120px]" />
+        </div>
+
+        <div className="relative mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
+          <AnimatedSection className="mx-auto max-w-2xl text-center">
+            <motion.div
+              variants={fadeUp}
+              className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary"
+            >
+              <IndianRupee className="h-3.5 w-3.5" />
+              Pricing
+            </motion.div>
+            <motion.h2
+              variants={fadeUp}
+              className="text-3xl font-bold tracking-tight text-foreground sm:text-5xl"
+            >
+              Simple, transparent{" "}
+              <span className="text-primary">pricing</span>
+            </motion.h2>
+            <motion.p
+              variants={fadeUp}
+              className="mt-5 text-lg text-muted-foreground"
+            >
+              Start free, scale as you grow. No hidden fees.
+            </motion.p>
+          </AnimatedSection>
+
+          <AnimatedSection className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {pricingPlans.map((plan) => (
+              <motion.div
+                key={plan.name}
+                variants={fadeUp}
+                whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                className={`relative flex flex-col rounded-2xl border p-6 backdrop-blur-sm transition-colors ${
+                  plan.highlight
+                    ? "border-primary bg-primary/[0.03] shadow-lg shadow-primary/10 ring-1 ring-primary/20"
+                    : "border-border/60 bg-card/80 hover:border-primary/30"
+                }`}
+              >
+                {plan.highlight && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/25">
+                      <Star className="h-3 w-3" /> Most Popular
+                    </span>
+                  </div>
+                )}
+
+                <div className="mb-5">
+                  <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
+                </div>
+
+                <div className="mb-6">
+                  <span className="text-4xl font-extrabold text-foreground">
+                    {plan.price === "0" ? "Free" : `₹${plan.price}`}
+                  </span>
+                  {plan.price !== "0" && (
+                    <span className="text-sm text-muted-foreground">{plan.period}</span>
+                  )}
+                </div>
+
+                <ul className="mb-8 flex-1 space-y-3">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.highlight ? "text-primary" : "text-emerald-500"}`} />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  className={`w-full ${
+                    plan.highlight
+                      ? "shadow-lg shadow-primary/25"
+                      : ""
+                  }`}
+                  variant={plan.highlight ? "default" : "outline"}
+                  asChild
+                >
+                  <Link to={plan.ctaLink}>
+                    {plan.cta}
+                    <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Link>
+                </Button>
+              </motion.div>
+            ))}
+          </AnimatedSection>
+
+          <AnimatedSection className="mt-12">
+            <motion.p variants={fadeUp} className="text-center text-sm text-muted-foreground">
+              All paid plans include 18% GST. Need a custom plan?{" "}
+              <a href="mailto:a@in-sync.co.in" className="font-medium text-primary hover:underline">
+                Contact us
+              </a>
+            </motion.p>
           </AnimatedSection>
         </div>
       </section>
