@@ -20,16 +20,11 @@ import {
   Trash2,
   TrendingUp,
   TrendingDown,
-  MessageSquare,
-  Bot,
   ShieldCheck,
   Megaphone,
   Plus,
   ChevronRight,
-  ArrowUpRight,
-  Zap,
   Clock,
-  AlertTriangle,
   User,
   RefreshCw,
   Target,
@@ -38,6 +33,7 @@ import {
   Lock,
   FileText,
   UserPlus,
+  Mail,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -54,7 +50,7 @@ import {
   Legend,
 } from "recharts";
 import { useOrgDashboard } from "@/hooks/useOrgDashboard";
-import type { OrgKpis, RecentCampaign, MessageFunnel, RecentConversation, DpdpStatus } from "@/hooks/useOrgDashboard";
+import type { OrgKpis, RecentCampaign, MessageFunnel, DpdpStatus } from "@/hooks/useOrgDashboard";
 import { useOrg } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -62,14 +58,13 @@ import { seedDashboardData, unseedDashboardData } from "@/lib/seedDashboard";
 import { AiInsights } from "@/components/AiInsights";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { formatDistanceToNow } from "date-fns";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
 };
 
-// --- KPI Card (Vendor-style) ---
+// --- KPI Card ---
 function KpiCard({
   label,
   value,
@@ -140,7 +135,7 @@ function MessagingFunnel({ funnel }: { funnel: MessageFunnel }) {
   const stages = [
     { label: "Sent", count: funnel.sent, color: "primary", sub: "Total outbound" },
     { label: "Delivered", count: funnel.delivered, color: "emerald-500", sub: `${funnel.sent > 0 ? Math.round((funnel.delivered / funnel.sent) * 100) : 0}% of sent` },
-    { label: "Read", count: funnel.read, color: "violet-500", sub: `${funnel.delivered > 0 ? Math.round((funnel.read / funnel.delivered) * 100) : 0}% of delivered` },
+    { label: "Opened", count: funnel.opened, color: "violet-500", sub: `${funnel.delivered > 0 ? Math.round((funnel.opened / funnel.delivered) * 100) : 0}% of delivered` },
     { label: "Failed", count: funnel.failed, color: "destructive", sub: `${funnel.sent > 0 ? Math.round((funnel.failed / funnel.sent) * 100) : 0}% failure rate` },
   ];
 
@@ -148,8 +143,8 @@ function MessagingFunnel({ funnel }: { funnel: MessageFunnel }) {
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-base font-bold text-foreground">Messaging Pipeline</h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">All-time message delivery funnel</p>
+          <h2 className="text-base font-bold text-foreground">Email Pipeline</h2>
+          <p className="text-[11px] text-muted-foreground mt-0.5">All-time email delivery funnel</p>
         </div>
         <Badge variant="outline" className="text-[10px]">All Time</Badge>
       </div>
@@ -177,67 +172,8 @@ function MessagingFunnel({ funnel }: { funnel: MessageFunnel }) {
   );
 }
 
-// --- Recent Conversations Feed ---
-function RecentConversationsFeed({ conversations, navigate }: { conversations: RecentConversation[]; navigate: (path: string) => void }) {
-  const statusColor = (status: string) => {
-    if (status === "open") return "bg-emerald-500/10 text-emerald-600";
-    if (status === "resolved" || status === "closed") return "bg-muted text-muted-foreground";
-    return "bg-primary/10 text-primary";
-  };
-
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5 flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-base font-bold text-foreground">Recent Conversations</h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Live chat activity</p>
-        </div>
-        <button
-          onClick={() => navigate("/communications")}
-          className="text-xs text-primary font-semibold hover:underline flex items-center gap-1"
-        >
-          View All <ChevronRight className="h-3 w-3" />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto space-y-0 max-h-[280px]">
-        {conversations.length > 0 ? conversations.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => navigate("/communications")}
-            className="flex items-start gap-3 w-full p-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left"
-          >
-            <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${statusColor(c.status)}`}>
-              <User className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-foreground truncate">
-                  {c.contact_name || c.phone_number}
-                </p>
-                {c.unread_count > 0 && (
-                  <span className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                    {c.unread_count}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground truncate">
-                {c.last_message_preview || "No messages"}
-              </p>
-              <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                {c.last_message_at ? formatDistanceToNow(new Date(c.last_message_at), { addSuffix: true }) : ""}
-              </p>
-            </div>
-          </button>
-        )) : (
-          <p className="text-sm text-muted-foreground text-center py-8">No recent conversations</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // --- Campaign Performance Chart ---
-function CampaignPerformanceChart({ data }: { data: { day: string; sent: number; delivered: number; read: number }[] }) {
+function CampaignPerformanceChart({ data }: { data: { day: string; sent: number; delivered: number; opened: number }[] }) {
   const hasData = data.some((d) => d.sent > 0);
 
   return (
@@ -245,7 +181,7 @@ function CampaignPerformanceChart({ data }: { data: { day: string; sent: number;
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-base font-bold text-foreground">Campaign Performance</h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Last 7 days message activity</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Last 7 days email activity</p>
         </div>
         <Badge variant="outline" className="text-[10px]">7 Days</Badge>
       </div>
@@ -253,7 +189,7 @@ function CampaignPerformanceChart({ data }: { data: { day: string; sent: number;
         <div className="flex h-[260px] items-center justify-center text-muted-foreground">
           <div className="text-center">
             <BarChart3 className="mx-auto mb-2 h-8 w-8 opacity-30" />
-            <p className="text-sm">No message data in the last 7 days</p>
+            <p className="text-sm">No email data in the last 7 days</p>
           </div>
         </div>
       ) : (
@@ -272,7 +208,7 @@ function CampaignPerformanceChart({ data }: { data: { day: string; sent: number;
             />
             <Bar dataKey="sent" name="Sent" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
             <Bar dataKey="delivered" name="Delivered" fill="#10b981" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="read" name="Read" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="opened" name="Opened" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
             <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
           </BarChart>
         </ResponsiveContainer>
@@ -299,8 +235,8 @@ function KeyMetricsCard({ kpis }: { kpis: OrgKpis }) {
         <div className="h-px bg-border" />
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] text-muted-foreground">Read Rate</p>
-            <p className="text-2xl font-bold text-foreground">{kpis.readRate}%</p>
+            <p className="text-[11px] text-muted-foreground">Open Rate</p>
+            <p className="text-2xl font-bold text-foreground">{kpis.openRate}%</p>
           </div>
           <div className="h-11 w-11 rounded-xl bg-violet-500/10 flex items-center justify-center">
             <Eye className="h-5 w-5 text-violet-500" />
@@ -319,11 +255,11 @@ function KeyMetricsCard({ kpis }: { kpis: OrgKpis }) {
         <div className="h-px bg-border" />
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] text-muted-foreground">Active Chatbots</p>
-            <p className="text-2xl font-bold text-foreground">{kpis.activeChatbots} <span className="text-sm font-normal text-muted-foreground">/ {kpis.totalChatbots}</span></p>
+            <p className="text-[11px] text-muted-foreground">Active Campaigns</p>
+            <p className="text-2xl font-bold text-foreground">{kpis.activeCampaigns} <span className="text-sm font-normal text-muted-foreground">/ {kpis.totalCampaigns}</span></p>
           </div>
           <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Bot className="h-5 w-5 text-primary" />
+            <Megaphone className="h-5 w-5 text-primary" />
           </div>
         </div>
       </div>
@@ -433,7 +369,7 @@ function RecentBroadcastsTable({ campaigns, navigate }: { campaigns: RecentCampa
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-base font-bold text-foreground">Recent Broadcasts</h2>
+          <h2 className="text-base font-bold text-foreground">Recent Campaigns</h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">Latest campaign performance</p>
         </div>
         <button
@@ -453,58 +389,41 @@ function RecentBroadcastsTable({ campaigns, navigate }: { campaigns: RecentCampa
           <TableHeader>
             <TableRow>
               <TableHead>Campaign</TableHead>
-              <TableHead>Type</TableHead>
               <TableHead className="text-right">Sent</TableHead>
               <TableHead className="text-right">Delivered</TableHead>
-              <TableHead>Read Rate</TableHead>
+              <TableHead>Open Rate</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {campaigns.map((c) => {
-              const categoryColor =
-                c.category?.toLowerCase() === "marketing"
-                  ? "text-emerald-600"
-                  : c.category?.toLowerCase() === "utility"
-                  ? "text-sky-600"
-                  : c.category?.toLowerCase() === "authentication"
-                  ? "text-violet-600"
-                  : "text-muted-foreground";
-
-              return (
-                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/campaigns/${c.id}`)}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell>
-                    <span className={`text-xs font-medium capitalize ${categoryColor}`}>
-                      {c.category ?? "—"}
+            {campaigns.map((c) => (
+              <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/campaigns/${c.id}`)}>
+                <TableCell className="font-medium">{c.name}</TableCell>
+                <TableCell className="text-right">{c.sent.toLocaleString()}</TableCell>
+                <TableCell className="text-right">
+                  {c.delivered.toLocaleString()}
+                  {c.sent > 0 && (
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      ({Math.round((c.delivered / c.sent) * 100)}%)
                     </span>
-                  </TableCell>
-                  <TableCell className="text-right">{c.sent.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">
-                    {c.delivered.toLocaleString()}
-                    {c.sent > 0 && (
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        ({Math.round((c.delivered / c.sent) * 100)}%)
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-violet-500"
-                          style={{ width: `${c.readRate}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-medium">{c.readRate}%</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-violet-500"
+                        style={{ width: `${c.openRate}%` }}
+                      />
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={c.status} />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+                    <span className="text-xs font-medium">{c.openRate}%</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={c.status} />
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       )}
@@ -516,7 +435,7 @@ function RecentBroadcastsTable({ campaigns, navigate }: { campaigns: RecentCampa
 const MIX_COLORS: Record<string, string> = {
   Marketing: "#10b981",
   Utility: "#0ea5e9",
-  Authentication: "#8b5cf6",
+  Transactional: "#8b5cf6",
   Uncategorized: "#94a3b8",
 };
 
@@ -529,11 +448,11 @@ function MessageMixDonut({ data }: { data: { name: string; value: number }[] }) 
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
-      <h2 className="text-base font-bold text-foreground mb-4">Message Mix</h2>
+      <h2 className="text-base font-bold text-foreground mb-4">Email Mix</h2>
       {total === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
           <Send className="h-8 w-8 mb-2 opacity-30" />
-          <p className="text-sm">No message data</p>
+          <p className="text-sm">No email data</p>
         </div>
       ) : (
         <>
@@ -553,7 +472,7 @@ function MessageMixDonut({ data }: { data: { name: string; value: number }[] }) 
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: number) => [value.toLocaleString(), "Messages"]}
+                formatter={(value: number) => [value.toLocaleString(), "Emails"]}
                 contentStyle={{ borderRadius: 12, fontSize: 12 }}
               />
               <text
@@ -654,7 +573,7 @@ export default function OrgDashboard() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
-              WhatsApp{" "}
+              Email{" "}
               <span className="bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-transparent">
                 Command Center
               </span>
@@ -702,7 +621,7 @@ export default function OrgDashboard() {
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard
-                label="Messages Sent MTD"
+                label="Emails Sent MTD"
                 value={data.kpis.messagesSentMTD}
                 prev={data.kpis.messagesPrevMonth}
                 colorClass="from-sky-500/10 to-sky-500/5"
@@ -727,15 +646,17 @@ export default function OrgDashboard() {
                 subtitle="Successfully delivered"
               />
               <KpiCard
-                label="Open Conversations"
-                value={data.kpis.openConversations}
+                label="Open Rate"
+                value={data.kpis.openRate}
+                suffix="%"
+                prev={data.kpis.openRatePrev}
                 colorClass="from-amber-500/10 to-amber-500/5"
                 borderClass="border-amber-500/20"
                 shadowClass="hover:shadow-amber-500/10"
-                icon={MessageSquare}
-                bgIcon={MessageSquare}
-                onClick={() => navigate("/communications")}
-                subtitle={`${data.kpis.unassignedConversations} unassigned`}
+                icon={Eye}
+                bgIcon={Mail}
+                onClick={() => navigate("/analytics")}
+                subtitle="Emails opened by recipients"
               />
               <KpiCard
                 label="Total Contacts"
@@ -758,23 +679,12 @@ export default function OrgDashboard() {
           {!loading && <AiInsights type="dashboard" />}
         </motion.div>
 
-        {/* Row 3: Pipeline + Recent Conversations */}
-        <motion.div
-          variants={fadeIn}
-          initial="hidden"
-          animate="visible"
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 lg:grid-cols-5 gap-4"
-        >
-          <div className="lg:col-span-3">
-            {loading ? <SectionSkeleton height="h-[220px]" /> : <MessagingFunnel funnel={data.funnel} />}
-          </div>
-          <div className="lg:col-span-2">
-            {loading ? <SectionSkeleton height="h-[220px]" /> : <RecentConversationsFeed conversations={data.recentConversations} navigate={navigate} />}
-          </div>
+        {/* Row 3: Pipeline */}
+        <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.1 }}>
+          {loading ? <SectionSkeleton height="h-[220px]" /> : <MessagingFunnel funnel={data.funnel} />}
         </motion.div>
 
-        {/* Row 4: Chart + Message Mix */}
+        {/* Row 4: Chart + Email Mix */}
         <motion.div
           variants={fadeIn}
           initial="hidden"
@@ -790,7 +700,7 @@ export default function OrgDashboard() {
           </div>
         </motion.div>
 
-        {/* Row 5: Key Metrics + DPDP + Recent Broadcasts */}
+        {/* Row 5: Key Metrics + DPDP + Campaign Summary */}
         <motion.div
           variants={fadeIn}
           initial="hidden"
@@ -800,56 +710,41 @@ export default function OrgDashboard() {
         >
           <KeyMetricsCard kpis={data.kpis} />
           <DpdpCard dpdp={data.dpdp} navigate={navigate} />
-          {/* Conversation Summary */}
+          {/* Campaign Summary */}
           <div className="rounded-2xl border border-border bg-card p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-foreground">Conversations</h2>
+              <h2 className="text-base font-bold text-foreground">Campaign Status</h2>
               <button
-                onClick={() => navigate("/communications")}
+                onClick={() => navigate("/campaigns")}
                 className="text-xs text-primary font-semibold hover:underline flex items-center gap-1"
               >
-                Open Inbox <ChevronRight className="h-3 w-3" />
+                All Campaigns <ChevronRight className="h-3 w-3" />
               </button>
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[11px] text-muted-foreground">Open</p>
-                  <p className="text-2xl font-bold text-foreground">{data.kpis.openConversations}</p>
+                  <p className="text-[11px] text-muted-foreground">Active</p>
+                  <p className="text-2xl font-bold text-foreground">{data.kpis.activeCampaigns}</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                  <MessageSquare className="h-5 w-5 text-emerald-500" />
+                  <Megaphone className="h-5 w-5 text-emerald-500" />
                 </div>
               </div>
               <div className="h-px bg-border" />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[11px] text-muted-foreground">Unassigned</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold text-foreground">{data.kpis.unassignedConversations}</p>
-                    {data.kpis.unassignedConversations > 0 && (
-                      <Badge className="bg-amber-500/10 text-amber-600 border-0 text-[10px]">Needs Attention</Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="h-11 w-11 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-amber-500" />
-                </div>
-              </div>
-              <div className="h-px bg-border" />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Resolved</p>
-                  <p className="text-2xl font-bold text-foreground">{data.kpis.resolvedConversations}</p>
+                  <p className="text-[11px] text-muted-foreground">Total Campaigns</p>
+                  <p className="text-2xl font-bold text-foreground">{data.kpis.totalCampaigns}</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <CheckCheck className="h-5 w-5 text-primary" />
+                  <Send className="h-5 w-5 text-primary" />
                 </div>
               </div>
               <div className="h-px bg-border" />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[11px] text-muted-foreground">Failed Messages</p>
+                  <p className="text-[11px] text-muted-foreground">Failed Emails</p>
                   <div className="flex items-center gap-2">
                     <p className="text-2xl font-bold text-foreground">{data.kpis.messagesFailed}</p>
                     {data.kpis.messagesFailed > 0 && (
@@ -865,7 +760,7 @@ export default function OrgDashboard() {
           </div>
         </motion.div>
 
-        {/* Row 6: Recent Broadcasts Table */}
+        {/* Row 6: Recent Campaigns Table */}
         <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.25 }}>
           {loading ? <SectionSkeleton height="h-[300px]" /> : <RecentBroadcastsTable campaigns={data.recentCampaigns} navigate={navigate} />}
         </motion.div>

@@ -139,9 +139,9 @@ serve(async (req) => {
       });
     }
 
-    // ── UPDATE CREDENTIALS ──
+    // ── UPDATE CREDENTIALS (Email config) ──
     if (action === "update_credentials") {
-      const { org_id, exotel_api_key, exotel_api_token, exotel_subdomain, exotel_waba_id, exotel_account_sid, exotel_sender_number } = body;
+      const { org_id, from_name, from_email, reply_to } = body;
       if (!org_id) {
         return new Response(JSON.stringify({ error: "org_id required" }), {
           status: 400,
@@ -166,18 +166,15 @@ serve(async (req) => {
         });
       }
 
-      const isConfigured = !!(exotel_api_key && exotel_api_token);
+      const isConfigured = !!(from_email && from_name);
 
       const { error: credError } = await supabase
         .from("org_credentials")
         .upsert({
           org_id,
-          exotel_api_key: exotel_api_key || null,
-          exotel_api_token: exotel_api_token || null,
-          exotel_subdomain: exotel_subdomain || null,
-          exotel_waba_id: exotel_waba_id || null,
-          exotel_account_sid: exotel_account_sid || null,
-          exotel_sender_number: exotel_sender_number || null,
+          from_name: from_name || null,
+          from_email: from_email || null,
+          reply_to: reply_to || null,
           is_configured: isConfigured,
           updated_at: new Date().toISOString(),
         }, { onConflict: "org_id" });

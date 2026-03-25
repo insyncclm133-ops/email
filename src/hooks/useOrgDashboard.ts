@@ -8,25 +8,21 @@ export interface OrgKpis {
   messagesPrevMonth: number;
   deliveryRate: number;
   deliveryRatePrev: number;
-  readRate: number;
-  readRatePrev: number;
+  openRate: number;
+  openRatePrev: number;
   totalContacts: number;
   totalContactsPrev: number;
-  openConversations: number;
-  resolvedConversations: number;
-  unassignedConversations: number;
-  totalConversations: number;
-  activeChatbots: number;
-  totalChatbots: number;
   messagesFailed: number;
   contactsThisMonth: number;
+  totalCampaigns: number;
+  activeCampaigns: number;
 }
 
 export interface WeeklyChartPoint {
   day: string;
   sent: number;
   delivered: number;
-  read: number;
+  opened: number;
 }
 
 export interface RecentCampaign {
@@ -36,23 +32,13 @@ export interface RecentCampaign {
   category: string | null;
   sent: number;
   delivered: number;
-  readRate: number;
+  openRate: number;
   createdAt: string;
 }
 
 export interface MessageMixSlice {
   name: string;
   value: number;
-}
-
-export interface RecentConversation {
-  id: string;
-  phone_number: string;
-  contact_name: string | null;
-  last_message_preview: string | null;
-  last_message_at: string;
-  status: string;
-  unread_count: number;
 }
 
 export interface DpdpStatus {
@@ -66,7 +52,7 @@ export interface DpdpStatus {
 export interface MessageFunnel {
   sent: number;
   delivered: number;
-  read: number;
+  opened: number;
   failed: number;
 }
 
@@ -75,7 +61,6 @@ export interface OrgDashboardData {
   weeklyChart: WeeklyChartPoint[];
   recentCampaigns: RecentCampaign[];
   messageMix: MessageMixSlice[];
-  recentConversations: RecentConversation[];
   dpdp: DpdpStatus;
   funnel: MessageFunnel;
 }
@@ -85,18 +70,14 @@ const EMPTY_KPIS: OrgKpis = {
   messagesPrevMonth: 0,
   deliveryRate: 0,
   deliveryRatePrev: 0,
-  readRate: 0,
-  readRatePrev: 0,
+  openRate: 0,
+  openRatePrev: 0,
   totalContacts: 0,
   totalContactsPrev: 0,
-  openConversations: 0,
-  resolvedConversations: 0,
-  unassignedConversations: 0,
-  totalConversations: 0,
-  activeChatbots: 0,
-  totalChatbots: 0,
   messagesFailed: 0,
   contactsThisMonth: 0,
+  totalCampaigns: 0,
+  activeCampaigns: 0,
 };
 
 const EMPTY_DATA: OrgDashboardData = {
@@ -104,9 +85,8 @@ const EMPTY_DATA: OrgDashboardData = {
   weeklyChart: [],
   recentCampaigns: [],
   messageMix: [],
-  recentConversations: [],
   dpdp: { enabled: false, encryptedContacts: 0, totalContacts: 0, pendingRequests: 0, activeConsents: 0 },
-  funnel: { sent: 0, delivered: 0, read: 0, failed: 0 },
+  funnel: { sent: 0, delivered: 0, opened: 0, failed: 0 },
 };
 
 export function useOrgDashboard() {
@@ -136,8 +116,6 @@ export function useOrgDashboard() {
         messagesRes,
         messagesPrevRes,
         templatesRes,
-        conversationsRes,
-        chatbotsRes,
         orgRes,
       ] = await Promise.all([
         supabase
@@ -164,16 +142,6 @@ export function useOrgDashboard() {
           .select("id, category")
           .eq("org_id", orgId),
         supabase
-          .from("conversations")
-          .select("id, phone_number, contact_id, last_message_preview, last_message_at, status, unread_count, assigned_to, contacts(name)")
-          .eq("org_id", orgId)
-          .order("last_message_at", { ascending: false })
-          .limit(100),
-        supabase
-          .from("chatbot_flows")
-          .select("id, status")
-          .eq("org_id", orgId),
-        supabase
           .from("organizations")
           .select("dpdp_enabled")
           .eq("id", orgId)
@@ -187,8 +155,6 @@ export function useOrgDashboard() {
       const messages = messagesRes.data ?? [];
       const messagesPrev = messagesPrevRes.data ?? [];
       const templates = templatesRes.data ?? [];
-      const conversations = conversationsRes.data ?? [];
-      const chatbots = chatbotsRes.data ?? [];
 
       // KPIs
       const currentMonthMsgs = messages.filter((m) => m.created_at >= monthStart);
@@ -196,7 +162,7 @@ export function useOrgDashboard() {
       const messagesPrevMonth = messagesPrev.length;
 
       const delivered = messages.filter(
-        (m) => m.status === "delivered" || m.status === "read"
+        (m) => m.status === "delivered" || m.status === "sent" || m.status === "read"
       ).length;
       const failed = messages.filter((m) => m.status === "failed").length;
       const totalDeliverable = delivered + failed;
@@ -204,19 +170,20 @@ export function useOrgDashboard() {
         totalDeliverable > 0 ? Math.round((delivered / totalDeliverable) * 100) : 0;
 
       const prevDelivered = messagesPrev.filter(
-        (m) => m.status === "delivered" || m.status === "read"
+        (m) => m.status === "delivered" || m.status === "sent" || m.status === "read"
       ).length;
       const prevFailed = messagesPrev.filter((m) => m.status === "failed").length;
       const prevTotal = prevDelivered + prevFailed;
       const deliveryRatePrev =
         prevTotal > 0 ? Math.round((prevDelivered / prevTotal) * 100) : 0;
 
-      const readCount = messages.filter((m) => m.status === "read").length;
-      const readRate = delivered > 0 ? Math.round((readCount / delivered) * 100) : 0;
+      // For email, "read" maps to "opened"
+      const openedCount = messages.filter((m) => m.status === "read" || m.read_at).length;
+      const openRate = delivered > 0 ? Math.round((openedCount / delivered) * 100) : 0;
 
-      const prevReadCount = messagesPrev.filter((m) => m.status === "read").length;
-      const readRatePrev =
-        prevDelivered > 0 ? Math.round((prevReadCount / prevDelivered) * 100) : 0;
+      const prevOpenedCount = messagesPrev.filter((m) => m.status === "read" || m.read_at).length;
+      const openRatePrev =
+        prevDelivered > 0 ? Math.round((prevOpenedCount / prevDelivered) * 100) : 0;
 
       const totalContacts = contactsRes.count ?? contacts.length;
       const totalContactsPrev = contacts.filter(
@@ -224,38 +191,29 @@ export function useOrgDashboard() {
       ).length;
       const contactsThisMonth = totalContacts - totalContactsPrev;
 
-      // Conversations
-      const openConversations = conversations.filter((c) => c.status === "open").length;
-      const resolvedConversations = conversations.filter((c) => c.status === "resolved" || c.status === "closed").length;
-      const unassignedConversations = conversations.filter((c) => c.status === "open" && !c.assigned_to).length;
-
-      // Chatbots
-      const activeChatbots = chatbots.filter((b) => b.status === "active").length;
+      const totalCampaigns = campaigns.length;
+      const activeCampaigns = campaigns.filter((c) => c.status === "running" || c.status === "scheduled").length;
 
       const kpis: OrgKpis = {
         messagesSentMTD,
         messagesPrevMonth,
         deliveryRate,
         deliveryRatePrev,
-        readRate,
-        readRatePrev,
+        openRate,
+        openRatePrev,
         totalContacts,
         totalContactsPrev,
-        openConversations,
-        resolvedConversations,
-        unassignedConversations,
-        totalConversations: conversations.length,
-        activeChatbots,
-        totalChatbots: chatbots.length,
         messagesFailed: failed,
         contactsThisMonth,
+        totalCampaigns,
+        activeCampaigns,
       };
 
       // Funnel
       const funnel: MessageFunnel = {
         sent: messages.length,
         delivered,
-        read: readCount,
+        opened: openedCount,
         failed,
       };
 
@@ -264,15 +222,15 @@ export function useOrgDashboard() {
       for (let i = 0; i < 7; i++) {
         const d = subDays(now, 6 - i);
         const key = format(d, "yyyy-MM-dd");
-        weeklyBuckets.set(key, { day: format(d, "EEE"), sent: 0, delivered: 0, read: 0 });
+        weeklyBuckets.set(key, { day: format(d, "EEE"), sent: 0, delivered: 0, opened: 0 });
       }
       for (const msg of messages) {
         const msgDate = format(new Date(msg.created_at), "yyyy-MM-dd");
         const bucket = weeklyBuckets.get(msgDate);
         if (!bucket) continue;
         bucket.sent++;
-        if (msg.status === "delivered" || msg.status === "read") bucket.delivered++;
-        if (msg.status === "read") bucket.read++;
+        if (msg.status === "delivered" || msg.status === "sent" || msg.status === "read") bucket.delivered++;
+        if (msg.status === "read" || msg.read_at) bucket.opened++;
       }
       const weeklyChart = Array.from(weeklyBuckets.values());
 
@@ -282,10 +240,10 @@ export function useOrgDashboard() {
         const campaignMsgs = messages.filter((m) => m.campaign_id === c.id);
         const cSent = campaignMsgs.length;
         const cDelivered = campaignMsgs.filter(
-          (m) => m.status === "delivered" || m.status === "read"
+          (m) => m.status === "delivered" || m.status === "sent" || m.status === "read"
         ).length;
-        const cRead = campaignMsgs.filter((m) => m.status === "read").length;
-        const cReadRate = cDelivered > 0 ? Math.round((cRead / cDelivered) * 100) : 0;
+        const cOpened = campaignMsgs.filter((m) => m.status === "read" || m.read_at).length;
+        const cOpenRate = cDelivered > 0 ? Math.round((cOpened / cDelivered) * 100) : 0;
         const tpl = c.template_id ? templateMap.get(c.template_id) : null;
         return {
           id: c.id,
@@ -294,7 +252,7 @@ export function useOrgDashboard() {
           category: tpl?.category ?? null,
           sent: cSent,
           delivered: cDelivered,
-          readRate: cReadRate,
+          openRate: cOpenRate,
           createdAt: c.created_at,
         };
       });
@@ -316,22 +274,10 @@ export function useOrgDashboard() {
         .map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }))
         .sort((a, b) => b.value - a.value);
 
-      // Recent conversations
-      const recentConversations: RecentConversation[] = conversations.slice(0, 8).map((c: any) => ({
-        id: c.id,
-        phone_number: c.phone_number,
-        contact_name: c.contacts?.name || null,
-        last_message_preview: c.last_message_preview,
-        last_message_at: c.last_message_at,
-        status: c.status,
-        unread_count: c.unread_count || 0,
-      }));
-
       // DPDP
       const encryptedContacts = contacts.filter((c: any) => c.pii_encrypted === true).length;
       const dpdpEnabled = orgRes.data?.dpdp_enabled || false;
 
-      // Fetch DPDP request counts if enabled
       let pendingRequests = 0;
       let activeConsents = 0;
       if (dpdpEnabled) {
@@ -352,7 +298,7 @@ export function useOrgDashboard() {
       };
 
       if (signal.cancelled) return;
-      setData({ kpis, weeklyChart, recentCampaigns, messageMix, recentConversations, dpdp, funnel });
+      setData({ kpis, weeklyChart, recentCampaigns, messageMix, dpdp, funnel });
     } catch (err) {
       console.error("Org dashboard fetch error:", err);
       if (!signal.cancelled) setData(EMPTY_DATA);

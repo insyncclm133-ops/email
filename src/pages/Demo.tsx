@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  MessageCircle,
+  Mail,
   LayoutDashboard,
   Users,
   Megaphone,
@@ -113,7 +113,7 @@ function MockSidebar({ active }: { active: string }) {
     >
       <div className="flex h-14 items-center gap-2 border-b border-border/40 px-5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-          <MessageCircle className="h-4 w-4 text-primary-foreground" />
+          <Mail className="h-4 w-4 text-primary-foreground" />
         </div>
         <span className="text-sm font-bold tracking-tight text-foreground">In-Sync</span>
       </div>
@@ -325,7 +325,7 @@ function SceneIntro() {
         transition={{ duration: 0.6, type: "spring" }}
         className="relative mb-8 flex h-24 w-24 items-center justify-center rounded-3xl bg-primary shadow-2xl shadow-primary/30"
       >
-        <MessageCircle className="h-12 w-12 text-primary-foreground" />
+        <Mail className="h-12 w-12 text-primary-foreground" />
       </motion.div>
 
       <motion.h1
@@ -343,7 +343,7 @@ function SceneIntro() {
         transition={{ delay: 0.6, duration: 0.5 }}
         className="relative mt-3 text-lg text-muted-foreground"
       >
-        AI-Powered, Self-Serve WhatsApp Platform
+        AI-Powered Email Broadcast Platform
       </motion.p>
 
       <motion.div
@@ -383,7 +383,7 @@ function SceneDashboard() {
         <motion.div {...slideUp(0)} className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-foreground">Dashboard</h2>
-            <p className="text-xs text-muted-foreground">Your WhatsApp campaign command centre</p>
+            <p className="text-xs text-muted-foreground">Your email campaign command centre</p>
           </div>
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -685,7 +685,7 @@ function SceneCampaigns() {
             </AnimatePresence>
           </div>
 
-          {/* Right: WhatsApp preview */}
+          {/* Right: Email preview */}
           <motion.div {...slideLeft(0.4)} className="w-52 shrink-0">
             <div className="rounded-xl border border-border/60 bg-card p-3">
               <p className="mb-2 text-xs font-semibold text-foreground">Message Preview</p>
@@ -1855,7 +1855,7 @@ export default function Demo() {
       {/* Top bar */}
       <div className="flex items-center justify-between border-b border-white/10 bg-black px-4 py-2">
         <Link to="/" className="flex items-center gap-2 text-sm text-white/60 hover:text-white/80">
-          <MessageCircle className="h-4 w-4" />
+          <Mail className="h-4 w-4" />
           <span className="font-medium">In-Sync Demo</span>
         </Link>
 

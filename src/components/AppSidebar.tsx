@@ -7,16 +7,14 @@ import {
   LayoutDashboard,
   Users,
   Megaphone,
-  MessageSquare,
   LogOut,
-  MessageCircle,
+  Mail,
   Settings,
   ShieldCheck,
   Building2,
   FileText,
   Wallet,
   Zap,
-  Bot,
   Code,
   BarChart3,
   ScrollText,
@@ -46,9 +44,7 @@ export function AppSidebar() {
       { to: "/contacts", icon: Users, label: "Contacts" },
       { to: "/campaigns", icon: Megaphone, label: "Campaigns" },
       { to: "/templates", icon: FileText, label: "Templates" },
-      { to: "/communications", icon: MessageSquare, label: "Communications" },
       { to: "/automations", icon: Zap, label: "Automations" },
-      { to: "/chatbot", icon: Bot, label: "Chatbot Builder" },
       { to: "/analytics", icon: BarChart3, label: "Analytics" },
       { to: "/developers", icon: Code, label: "Developers" },
       { to: "/settings", icon: Settings, label: "Settings" },
@@ -65,7 +61,7 @@ export function AppSidebar() {
       {/* Brand */}
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-6">
         <div className="flex items-center gap-2">
-          <MessageCircle className="h-7 w-7 text-sidebar-primary" />
+          <Mail className="h-7 w-7 text-sidebar-primary" />
           <span className="text-lg font-bold tracking-tight text-sidebar-primary-foreground">
             In-Sync
           </span>

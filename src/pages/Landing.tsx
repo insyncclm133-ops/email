@@ -4,9 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import {
-  MessageCircle,
+  Mail,
   Users,
-  Megaphone,
   BarChart3,
   Zap,
   Shield,
@@ -16,16 +15,18 @@ import {
   Globe,
   Clock,
   TrendingUp,
+  MousePointerClick,
+  FileCode,
 } from "lucide-react";
 
 /* ── data ─────────────────────────────────────────────── */
 
 const features = [
   {
-    icon: Megaphone,
-    title: "Campaign Builder",
+    icon: FileCode,
+    title: "HTML Email Templates",
     description:
-      "Create targeted WhatsApp campaigns with personalized templates, media attachments, and scheduled delivery.",
+      "Design beautiful email campaigns with our drag-and-drop editor or import custom HTML templates with dynamic merge tags.",
     gradient: "from-green-500/20 to-emerald-500/20",
     iconColor: "text-green-500",
   },
@@ -33,28 +34,28 @@ const features = [
     icon: Users,
     title: "Contact Management",
     description:
-      "Import contacts via CSV, organize with tags, and build segmented audiences for precision messaging.",
+      "Import contacts via CSV, organize with tags, and build segmented audiences for precision targeting.",
     gradient: "from-blue-500/20 to-cyan-500/20",
     iconColor: "text-blue-500",
   },
   {
-    icon: BarChart3,
-    title: "Real-time Analytics",
+    icon: MousePointerClick,
+    title: "Open & Click Tracking",
     description:
-      "Track delivery, read receipts, and failures with live dashboards and exportable reports.",
+      "Track opens, link clicks, and engagement metrics with live dashboards and exportable reports.",
     gradient: "from-violet-500/20 to-purple-500/20",
     iconColor: "text-violet-500",
   },
   {
-    icon: Zap,
-    title: "Instant Delivery",
+    icon: Shield,
+    title: "Domain Verification",
     description:
-      "Powered by Exotel's WhatsApp Business API for reliable, high-throughput message delivery.",
+      "Set up SPF, DKIM, and DMARC records to authenticate your sending domain and maximize inbox delivery.",
     gradient: "from-amber-500/20 to-orange-500/20",
     iconColor: "text-amber-500",
   },
   {
-    icon: Shield,
+    icon: Zap,
     title: "Enterprise Security",
     description:
       "Role-based access, encrypted credentials, and row-level data isolation keep your data safe.",
@@ -62,10 +63,10 @@ const features = [
     iconColor: "text-rose-500",
   },
   {
-    icon: MessageCircle,
-    title: "Communications Hub",
+    icon: BarChart3,
+    title: "Campaign Analytics",
     description:
-      "Monitor every message in real-time with status tracking from sent to delivered to read.",
+      "Monitor every email in real-time with status tracking from sent to delivered to opened to clicked.",
     gradient: "from-teal-500/20 to-emerald-500/20",
     iconColor: "text-teal-500",
   },
@@ -73,9 +74,9 @@ const features = [
 
 const stats = [
   { value: 100, suffix: "+", label: "Active Businesses" },
-  { value: 5, suffix: "M+", label: "Messages Delivered" },
-  { value: 98, suffix: "%", label: "Avg. Open Rate" },
-  { value: 12, suffix: "+", label: "Industries Served" },
+  { value: 10, suffix: "M+", label: "Emails Delivered" },
+  { value: 42, suffix: "%", label: "Avg. Open Rate" },
+  { value: 5.8, suffix: "%", label: "Avg. Click Rate" },
 ];
 
 const steps = [
@@ -92,12 +93,12 @@ const steps = [
   {
     icon: Send,
     title: "Launch Campaigns",
-    description: "Pick a template, select your audience, and hit send — messages deliver in under a second.",
+    description: "Pick a template, select your audience, and hit send — emails land in inboxes within seconds.",
   },
   {
     icon: TrendingUp,
     title: "Track Results",
-    description: "Watch delivery, read, and reply metrics roll in on your real-time dashboard.",
+    description: "Watch opens, clicks, and bounce metrics roll in on your real-time dashboard.",
   },
 ];
 
@@ -252,7 +253,7 @@ export default function Landing() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/25">
-              <MessageCircle className="h-5 w-5 text-primary-foreground" />
+              <Mail className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-lg font-bold tracking-tight text-foreground">
               In-Sync
@@ -314,7 +315,7 @@ export default function Landing() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
               </span>
-              Powered by Exotel WhatsApp Business API
+              Email Broadcast Platform for Growing Teams
             </motion.div>
 
             {/* Headline */}
@@ -324,7 +325,7 @@ export default function Landing() {
               transition={{ duration: 0.6, delay: 0.15 }}
               className="text-4xl font-extrabold tracking-tight text-foreground sm:text-6xl lg:text-7xl"
             >
-              Launch WhatsApp
+              Launch Email
               <br />
               Campaigns{" "}
               <span className="relative">
@@ -347,8 +348,9 @@ export default function Landing() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
             >
-              Create your organization, invite your team, and reach thousands
-              instantly — all from one powerful multi-tenant dashboard.
+              Create your organization, invite your team, and deliver
+              beautifully crafted emails to thousands — all from one powerful
+              multi-tenant dashboard.
             </motion.p>
 
             {/* CTA buttons */}
@@ -388,7 +390,7 @@ export default function Landing() {
               transition={{ duration: 0.5, delay: 0.6 }}
               className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground"
             >
-              {["No credit card required", "Free 100 Rs balance", "Setup in 2 minutes"].map(
+              {["No credit card required", "1,000 free emails/month", "Setup in 2 minutes"].map(
                 (t) => (
                   <span key={t} className="flex items-center gap-1.5">
                     <CheckCircle className="h-3.5 w-3.5 text-primary" />
@@ -504,7 +506,7 @@ export default function Landing() {
               variants={fadeUp}
               className="mt-5 text-lg text-muted-foreground"
             >
-              A complete toolkit for WhatsApp marketing — from contact import to
+              A complete toolkit for email marketing — from contact import to
               delivery analytics.
             </motion.p>
           </AnimatedSection>
@@ -612,15 +614,15 @@ export default function Landing() {
               variants={fadeUp}
               className="text-3xl font-bold tracking-tight text-foreground sm:text-5xl"
             >
-              Powering WhatsApp marketing{" "}
+              Powering email marketing{" "}
               <span className="text-primary">at scale</span>
             </motion.h2>
             <motion.p
               variants={fadeUp}
               className="mt-4 text-lg text-muted-foreground"
             >
-              Businesses across industries trust In-Sync for their customer
-              communication
+              Businesses across industries trust In-Sync for their email
+              campaigns
             </motion.p>
           </AnimatedSection>
 
@@ -693,7 +695,7 @@ export default function Landing() {
                 </h2>
                 <p className="mx-auto mt-5 max-w-xl text-lg text-primary-foreground/80">
                   Register your organization in seconds and launch your first
-                  WhatsApp campaign today. Start with a free Rs 100 balance.
+                  email campaign today. Start with 1,000 free emails per month.
                 </p>
                 <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                   <Button
@@ -731,7 +733,7 @@ export default function Landing() {
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-                <MessageCircle className="h-4 w-4 text-primary-foreground" />
+                <Mail className="h-4 w-4 text-primary-foreground" />
               </div>
               <span className="font-semibold text-foreground">In-Sync</span>
             </div>

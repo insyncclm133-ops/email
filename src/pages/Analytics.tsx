@@ -26,7 +26,7 @@ import {
 import {
   TrendingUp,
   TrendingDown,
-  MessageSquare,
+  Mail,
   Users,
   Clock,
   Target,
@@ -42,8 +42,8 @@ interface DailyData {
   messages_delivered: number;
   messages_read: number;
   messages_failed: number;
-  messages_inbound: number;
-  conversations_created: number;
+  messages_clicked: number;
+  campaigns_created: number;
   contacts_created: number;
 }
 
@@ -57,23 +57,23 @@ export default function Analytics() {
   const [metrics, setMetrics] = useState({
     totalSent: 0,
     totalDelivered: 0,
-    totalRead: 0,
-    totalInbound: 0,
+    totalOpened: 0,
+    totalClicked: 0,
     totalFailed: 0,
     deliveryRate: 0,
-    readRate: 0,
-    responseRate: 0,
+    openRate: 0,
+    clickRate: 0,
     newContacts: 0,
-    newConversations: 0,
+    newCampaigns: 0,
     avgDaily: 0,
   });
 
-  // Conversation metrics
-  const [convMetrics, setConvMetrics] = useState({
-    openCount: 0,
-    resolvedCount: 0,
-    avgResolutionHrs: 0,
-    unassignedCount: 0,
+  // Campaign metrics
+  const [campaignMetrics, setCampaignMetrics] = useState({
+    activeCount: 0,
+    completedCount: 0,
+    avgOpenRate: 0,
+    draftCount: 0,
   });
 
   // Source breakdown
@@ -102,42 +102,42 @@ export default function Analytics() {
     // Compute metrics
     const totalSent = data.reduce((s, d) => s + d.messages_sent, 0);
     const totalDelivered = data.reduce((s, d) => s + d.messages_delivered, 0);
-    const totalRead = data.reduce((s, d) => s + d.messages_read, 0);
-    const totalInbound = data.reduce((s, d) => s + d.messages_inbound, 0);
+    const totalOpened = data.reduce((s, d) => s + d.messages_read, 0);
+    const totalClicked = data.reduce((s, d) => s + d.messages_clicked, 0);
     const totalFailed = data.reduce((s, d) => s + d.messages_failed, 0);
     const newContacts = data.reduce((s, d) => s + d.contacts_created, 0);
-    const newConversations = data.reduce((s, d) => s + d.conversations_created, 0);
+    const newCampaigns = data.reduce((s, d) => s + d.campaigns_created, 0);
 
     setMetrics({
       totalSent,
       totalDelivered,
-      totalRead,
-      totalInbound,
+      totalOpened,
+      totalClicked,
       totalFailed,
       deliveryRate: totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0,
-      readRate: totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0,
-      responseRate: totalSent > 0 ? Math.round((totalInbound / totalSent) * 100) : 0,
+      openRate: totalDelivered > 0 ? Math.round((totalOpened / totalDelivered) * 100) : 0,
+      clickRate: totalOpened > 0 ? Math.round((totalClicked / totalOpened) * 100) : 0,
       newContacts,
-      newConversations,
+      newCampaigns,
       avgDaily: data.length > 0 ? Math.round(totalSent / data.length) : 0,
     });
 
-    // Fetch conversation metrics
+    // Fetch campaign metrics
     const [
-      { count: openCount },
-      { count: resolvedCount },
-      { count: unassignedCount },
+      { count: activeCount },
+      { count: completedCount },
+      { count: draftCount },
     ] = await Promise.all([
-      supabase.from("conversations").select("*", { count: "exact", head: true }).eq("org_id", currentOrg.id).eq("status", "open"),
-      supabase.from("conversations").select("*", { count: "exact", head: true }).eq("org_id", currentOrg.id).not("resolved_at", "is", null),
-      supabase.from("conversations").select("*", { count: "exact", head: true }).eq("org_id", currentOrg.id).eq("status", "open").is("assigned_to", null),
+      supabase.from("campaigns").select("*", { count: "exact", head: true }).eq("org_id", currentOrg.id).eq("status", "active"),
+      supabase.from("campaigns").select("*", { count: "exact", head: true }).eq("org_id", currentOrg.id).eq("status", "completed"),
+      supabase.from("campaigns").select("*", { count: "exact", head: true }).eq("org_id", currentOrg.id).eq("status", "draft"),
     ]);
 
-    setConvMetrics({
-      openCount: openCount ?? 0,
-      resolvedCount: resolvedCount ?? 0,
-      avgResolutionHrs: 0, // Would need time-based query
-      unassignedCount: unassignedCount ?? 0,
+    setCampaignMetrics({
+      activeCount: activeCount ?? 0,
+      completedCount: completedCount ?? 0,
+      avgOpenRate: 0, // Would need aggregation query
+      draftCount: draftCount ?? 0,
     });
 
     // Fetch contact source breakdown
@@ -164,9 +164,9 @@ export default function Analytics() {
     date: new Date(d.date).toLocaleDateString("en", { month: "short", day: "numeric" }),
     sent: d.messages_sent,
     delivered: d.messages_delivered,
-    read: d.messages_read,
+    opened: d.messages_read,
     failed: d.messages_failed,
-    inbound: d.messages_inbound,
+    clicked: d.messages_clicked,
   }));
 
   return (
@@ -174,7 +174,7 @@ export default function Analytics() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Analytics</h1>
-          <p className="text-muted-foreground">Comprehensive messaging and conversation analytics</p>
+          <p className="text-muted-foreground">Comprehensive email broadcast analytics</p>
         </div>
         <Select value={period} onValueChange={setPeriod}>
           <SelectTrigger className="w-40">
@@ -199,26 +199,26 @@ export default function Analytics() {
         <Tabs defaultValue="messaging">
           <TabsList>
             <TabsTrigger value="messaging">
-              <MessageSquare className="mr-1.5 h-4 w-4" /> Messaging
+              <Mail className="mr-1.5 h-4 w-4" /> Emails
             </TabsTrigger>
-            <TabsTrigger value="conversations">
-              <Activity className="mr-1.5 h-4 w-4" /> Conversations
+            <TabsTrigger value="campaigns">
+              <Activity className="mr-1.5 h-4 w-4" /> Campaigns
             </TabsTrigger>
             <TabsTrigger value="contacts">
               <Users className="mr-1.5 h-4 w-4" /> Contacts
             </TabsTrigger>
           </TabsList>
 
-          {/* ── Messaging Tab ── */}
+          {/* ── Emails Tab ── */}
           <TabsContent value="messaging" className="mt-4 space-y-6">
             {/* KPI Row */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {[
-                { label: "Sent", value: metrics.totalSent, icon: MessageSquare, color: "text-blue-600" },
+                { label: "Sent", value: metrics.totalSent, icon: Mail, color: "text-blue-600" },
                 { label: "Delivered", value: `${metrics.deliveryRate}%`, icon: Target, color: "text-green-600" },
-                { label: "Read", value: `${metrics.readRate}%`, icon: TrendingUp, color: "text-purple-600" },
-                { label: "Response Rate", value: `${metrics.responseRate}%`, icon: Activity, color: "text-amber-600" },
-                { label: "Failed", value: metrics.totalFailed, icon: TrendingDown, color: "text-red-600" },
+                { label: "Opened", value: `${metrics.openRate}%`, icon: TrendingUp, color: "text-purple-600" },
+                { label: "Click Rate", value: `${metrics.clickRate}%`, icon: Activity, color: "text-amber-600" },
+                { label: "Bounced", value: metrics.totalFailed, icon: TrendingDown, color: "text-red-600" },
               ].map(({ label, value, icon: Icon, color }) => (
                 <Card key={label}>
                   <CardContent className="flex items-center gap-3 py-4">
@@ -234,10 +234,10 @@ export default function Analytics() {
               ))}
             </div>
 
-            {/* Message Trends */}
+            {/* Email Trends */}
             <Card>
               <CardHeader>
-                <CardTitle>Message Trends</CardTitle>
+                <CardTitle>Email Trends</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={350}>
@@ -249,8 +249,8 @@ export default function Analytics() {
                     <Legend />
                     <Area type="monotone" dataKey="sent" name="Sent" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.1} />
                     <Area type="monotone" dataKey="delivered" name="Delivered" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
-                    <Area type="monotone" dataKey="read" name="Read" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} />
-                    <Area type="monotone" dataKey="inbound" name="Inbound" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} />
+                    <Area type="monotone" dataKey="opened" name="Opened" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} />
+                    <Area type="monotone" dataKey="clicked" name="Clicked" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} />
                   </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -268,8 +268,8 @@ export default function Analytics() {
                       data={[
                         { stage: "Sent", count: metrics.totalSent },
                         { stage: "Delivered", count: metrics.totalDelivered },
-                        { stage: "Read", count: metrics.totalRead },
-                        { stage: "Replied", count: metrics.totalInbound },
+                        { stage: "Opened", count: metrics.totalOpened },
+                        { stage: "Clicked", count: metrics.totalClicked },
                       ]}
                       layout="vertical"
                     >
@@ -294,15 +294,15 @@ export default function Analytics() {
                 <CardContent className="flex flex-col items-center justify-center py-8">
                   <BarChart3 className="mb-3 h-10 w-10 text-muted-foreground/30" />
                   <p className="text-4xl font-bold">{metrics.avgDaily}</p>
-                  <p className="text-sm text-muted-foreground">messages/day</p>
+                  <p className="text-sm text-muted-foreground">emails/day</p>
                   <div className="mt-4 grid grid-cols-2 gap-4 text-center text-sm">
                     <div>
-                      <p className="text-2xl font-semibold text-green-600">{metrics.totalInbound.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Inbound</p>
+                      <p className="text-2xl font-semibold text-green-600">{metrics.totalOpened.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">Opened</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-semibold text-blue-600">{metrics.totalSent.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Outbound</p>
+                      <p className="text-2xl font-semibold text-blue-600">{metrics.totalClicked.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">Clicked</p>
                     </div>
                   </div>
                 </CardContent>
@@ -310,14 +310,14 @@ export default function Analytics() {
             </div>
           </TabsContent>
 
-          {/* ── Conversations Tab ── */}
-          <TabsContent value="conversations" className="mt-4 space-y-6">
+          {/* ── Campaigns Tab ── */}
+          <TabsContent value="campaigns" className="mt-4 space-y-6">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { label: "Open Conversations", value: convMetrics.openCount, color: "text-blue-600" },
-                { label: "Resolved", value: convMetrics.resolvedCount, color: "text-green-600" },
-                { label: "Unassigned", value: convMetrics.unassignedCount, color: "text-amber-600" },
-                { label: "New Conversations", value: metrics.newConversations, color: "text-purple-600" },
+                { label: "Active Campaigns", value: campaignMetrics.activeCount, color: "text-blue-600" },
+                { label: "Completed", value: campaignMetrics.completedCount, color: "text-green-600" },
+                { label: "Drafts", value: campaignMetrics.draftCount, color: "text-amber-600" },
+                { label: "New Campaigns", value: metrics.newCampaigns, color: "text-purple-600" },
               ].map(({ label, value, color }) => (
                 <Card key={label}>
                   <CardContent className="py-4">
@@ -330,7 +330,7 @@ export default function Analytics() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Conversation Volume</CardTitle>
+                <CardTitle>Campaign Performance</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -340,8 +340,8 @@ export default function Analytics() {
                     <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="inbound" name="Inbound Messages" stroke="#10b981" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="sent" name="Outbound Messages" stroke="#0ea5e9" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="opened" name="Opened" stroke="#10b981" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="clicked" name="Clicked" stroke="#0ea5e9" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -359,17 +359,17 @@ export default function Analytics() {
               </Card>
               <Card>
                 <CardContent className="py-4">
-                  <p className="text-xs text-muted-foreground">From Ads (CTWA)</p>
+                  <p className="text-xs text-muted-foreground">From Signup Forms</p>
                   <p className="text-3xl font-bold text-purple-600">
-                    {sourceData.find((s) => s.name === "ctwa_ad")?.value || 0}
+                    {sourceData.find((s) => s.name === "signup_form")?.value || 0}
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="py-4">
-                  <p className="text-xs text-muted-foreground">From Inbound</p>
+                  <p className="text-xs text-muted-foreground">From Import</p>
                   <p className="text-3xl font-bold text-blue-600">
-                    {sourceData.find((s) => s.name === "inbound")?.value || 0}
+                    {sourceData.find((s) => s.name === "import")?.value || 0}
                   </p>
                 </CardContent>
               </Card>

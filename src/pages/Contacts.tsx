@@ -14,19 +14,24 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, Plus, Trash2, Search, Megaphone, Tag, Filter, X, Save, FolderOpen, MessageSquare } from "lucide-react";
+import { Upload, Plus, Trash2, Search, Megaphone, Tag, Filter, X, Save, FolderOpen, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { decryptContacts } from "@/lib/decryptPii";
 
 interface Contact {
   id: string;
   name: string | null;
-  phone_number: string;
-  email: string | null;
+  phone_number: string | null;
+  email: string;
   tags: string[];
   source: string | null;
   custom_fields: Record<string, string>;
   created_at: string;
+}
+
+/** Normalize email to lowercase and trimmed. */
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
 
 /** Normalize phone to include country code (default 91 for India). */
@@ -94,8 +99,8 @@ export default function Contacts() {
         const s = search.toLowerCase();
         const matchesSearch =
           (c.name?.toLowerCase().includes(s) ?? false) ||
-          c.phone_number.includes(s) ||
-          (c.email?.toLowerCase().includes(s) ?? false);
+          c.email.toLowerCase().includes(s) ||
+          (c.phone_number?.includes(s) ?? false);
         if (!matchesSearch) return false;
       }
       // Source filter
@@ -107,13 +112,13 @@ export default function Contacts() {
   }, [contacts, search, sourceFilter, tagFilter]);
 
   const addContact = async () => {
-    if (!user || !currentOrg || !newContact.phone_number) return;
+    if (!user || !currentOrg || !newContact.email) return;
     const { error } = await supabase.from("contacts").insert({
       user_id: user.id,
       org_id: currentOrg.id,
       name: newContact.name || null,
-      phone_number: normalizePhone(newContact.phone_number),
-      email: newContact.email || null,
+      email: normalizeEmail(newContact.email),
+      phone_number: newContact.phone_number ? normalizePhone(newContact.phone_number) : null,
       source: "manual",
     });
     if (error) {
@@ -140,12 +145,12 @@ export default function Contacts() {
       const text = await file.text();
       const lines = text.split(/\r?\n/).filter(Boolean);
       const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
-      const phoneIdx = headers.findIndex((h) => h.includes("phone") || h.includes("mobile") || h.includes("number"));
-      const nameIdx = headers.findIndex((h) => h.includes("name"));
       const emailIdx = headers.findIndex((h) => h.includes("email"));
+      const nameIdx = headers.findIndex((h) => h.includes("name"));
+      const phoneIdx = headers.findIndex((h) => h.includes("phone") || h.includes("mobile") || h.includes("number"));
 
-      if (phoneIdx === -1) {
-        toast({ variant: "destructive", title: "Invalid CSV", description: "No phone/mobile column found." });
+      if (emailIdx === -1) {
+        toast({ variant: "destructive", title: "Invalid CSV", description: "No email column found." });
         return;
       }
 
@@ -153,21 +158,22 @@ export default function Contacts() {
         const cols = line.split(",").map((c) => c.trim());
         const customFields: Record<string, string> = {};
         headers.forEach((h, i) => {
-          if (i !== phoneIdx && i !== nameIdx && i !== emailIdx && cols[i]) {
+          if (i !== emailIdx && i !== nameIdx && i !== phoneIdx && cols[i]) {
             customFields[h] = cols[i];
           }
         });
-        const rawPhone = cols[phoneIdx] || "";
+        const rawEmail = cols[emailIdx] || "";
+        const rawPhone = phoneIdx >= 0 ? cols[phoneIdx] || "" : "";
         return {
           user_id: user.id,
           org_id: currentOrg.id,
-          phone_number: rawPhone ? normalizePhone(rawPhone) : "",
+          email: rawEmail ? normalizeEmail(rawEmail) : "",
           name: nameIdx >= 0 ? cols[nameIdx] || null : null,
-          email: emailIdx >= 0 ? cols[emailIdx] || null : null,
+          phone_number: rawPhone ? normalizePhone(rawPhone) : null,
           source: "csv_upload",
           custom_fields: customFields,
         };
-      }).filter((r) => r.phone_number);
+      }).filter((r) => r.email);
 
       if (rows.length > 0) {
         const { error } = await supabase.from("contacts").insert(rows);
@@ -268,7 +274,7 @@ export default function Contacts() {
               </DialogHeader>
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Upload a CSV file with columns: name, phone/mobile, email. Extra columns are saved as custom fields.
+                  Upload a CSV file with columns: email, name, phone (optional). Extra columns are saved as custom fields.
                 </p>
                 <Input type="file" accept=".csv" onChange={handleFileUpload} />
               </div>
@@ -291,13 +297,13 @@ export default function Contacts() {
                   <Input value={newContact.name} onChange={(e) => setNewContact({ ...newContact, name: e.target.value })} />
                 </div>
                 <div>
-                  <Label>Phone Number *</Label>
-                  <Input value={newContact.phone_number} onChange={(e) => setNewContact({ ...newContact, phone_number: e.target.value })} placeholder="919876543210" required />
-                  <p className="text-xs text-muted-foreground mt-1">Include country code (e.g. 91 for India). 10-digit numbers auto-prefixed with 91.</p>
+                  <Label>Email *</Label>
+                  <Input value={newContact.email} onChange={(e) => setNewContact({ ...newContact, email: e.target.value })} placeholder="name@example.com" type="email" required />
                 </div>
                 <div>
-                  <Label>Email</Label>
-                  <Input value={newContact.email} onChange={(e) => setNewContact({ ...newContact, email: e.target.value })} />
+                  <Label>Phone Number</Label>
+                  <Input value={newContact.phone_number} onChange={(e) => setNewContact({ ...newContact, phone_number: e.target.value })} placeholder="919876543210" />
+                  <p className="text-xs text-muted-foreground mt-1">Optional. Include country code (e.g. 91 for India).</p>
                 </div>
                 <Button onClick={addContact} className="w-full">Add Contact</Button>
               </div>
@@ -408,8 +414,8 @@ export default function Contacts() {
                     />
                   </TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead>Tags</TableHead>
                   <TableHead className="w-24"></TableHead>
@@ -425,8 +431,8 @@ export default function Contacts() {
                       />
                     </TableCell>
                     <TableCell className="font-medium">{contact.name || "—"}</TableCell>
-                    <TableCell>{contact.phone_number}</TableCell>
-                    <TableCell>{contact.email || "—"}</TableCell>
+                    <TableCell>{contact.email}</TableCell>
+                    <TableCell>{contact.phone_number || "—"}</TableCell>
                     <TableCell>
                       {contact.source && (
                         <Badge variant="outline" className="text-[10px]">{contact.source}</Badge>
@@ -444,10 +450,10 @@ export default function Contacts() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          title="Send Message"
-                          onClick={() => navigate(`/communications?phone=${encodeURIComponent(contact.phone_number)}`)}
+                          title="Send Email"
+                          onClick={() => navigate(`/campaigns`)}
                         >
-                          <MessageSquare className="h-4 w-4 text-primary" />
+                          <Mail className="h-4 w-4 text-primary" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => deleteContact(contact.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />

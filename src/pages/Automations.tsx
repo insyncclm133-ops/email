@@ -147,7 +147,7 @@ export default function Automations() {
       }
       const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
       const phoneIdx = headers.findIndex((h) =>
-        ["phone", "phone_number", "mobile", "number", "whatsapp"].includes(h)
+        ["phone", "phone_number", "mobile", "number", "email"].includes(h)
       );
       const nameIdx = headers.findIndex((h) => ["name", "contact_name", "customer"].includes(h));
 

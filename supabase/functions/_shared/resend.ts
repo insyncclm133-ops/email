@@ -56,7 +56,7 @@ export function confirmationEmailHtml(confirmLink: string): string {
           </p>
         </td></tr>
         <tr><td style="padding:20px 32px;background:#fafafa;border-top:1px solid #f0f0f0;">
-          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">In-Sync &mdash; WhatsApp Campaign Management</p>
+          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">In-Sync &mdash; Email Broadcast Platform</p>
         </td></tr>
       </table>
     </td></tr>
@@ -90,7 +90,7 @@ export function resetPasswordEmailHtml(resetLink: string): string {
           </p>
         </td></tr>
         <tr><td style="padding:20px 32px;background:#fafafa;border-top:1px solid #f0f0f0;">
-          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">In-Sync &mdash; WhatsApp Campaign Management</p>
+          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">In-Sync &mdash; Email Broadcast Platform</p>
         </td></tr>
       </table>
     </td></tr>
@@ -136,7 +136,7 @@ export function invitationEmailHtml(
           </p>
         </td></tr>
         <tr><td style="padding:20px 32px;background:#fafafa;border-top:1px solid #f0f0f0;">
-          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">In-Sync &mdash; WhatsApp Campaign Management</p>
+          <p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">In-Sync &mdash; Email Broadcast Platform</p>
         </td></tr>
       </table>
     </td></tr>

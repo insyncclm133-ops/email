@@ -138,7 +138,7 @@ ${daysRemaining !== null ? `- Estimated days of balance remaining: ~${daysRemain
 - Daily breakdown (last 7 days): ${JSON.stringify(dailyCounts)}
 `;
 
-      systemPrompt = `You are a WhatsApp marketing analytics assistant. Analyze the dashboard data and provide 3-5 concise, actionable insights. Focus on:
+      systemPrompt = `You are a email marketing analytics assistant. Analyze the dashboard data and provide 3-5 concise, actionable insights. Focus on:
 1. Trends (improving/declining metrics vs last month)
 2. Anomalies (unusual failure rates, delivery drops)
 3. Opportunities (unread conversations, balance warnings, AI adoption)
@@ -213,7 +213,7 @@ Created: ${campaign.created_at}
 ${topErrors.length > 0 ? `- Top error messages: ${topErrors.map(([e, c]) => `"${e}" (${c}x)`).join(", ")}` : "- No errors"}
 `;
 
-      systemPrompt = `You are a WhatsApp campaign analyst. Analyze this campaign's performance and provide:
+      systemPrompt = `You are a email campaign analyst. Analyze this campaign's performance and provide:
 1. Overall assessment (good/average/poor performance)
 2. Key metrics analysis (delivery rate, read rate vs industry benchmarks of ~95% delivery, ~50% read)
 3. If there are failures, diagnose likely causes
@@ -235,7 +235,7 @@ CONVERSATION WITH ${contactName}:
 ${recentMsgs.map((m: any) => `${m.role}: ${m.content}`).join("\n")}
 `;
 
-        systemPrompt = `You are a customer support agent for a WhatsApp Business account. Based on the conversation above, suggest 3 short reply options the agent could send next.
+        systemPrompt = `You are a customer support agent for a email Business account. Based on the conversation above, suggest 3 short reply options the agent could send next.
 
 Rules:
 - Each suggestion should be 1-2 sentences max
@@ -282,7 +282,7 @@ INBOX DATA:
 ${sampleMessages.map((m: string, i: number) => `  ${i + 1}. "${m}"`).join("\n")}
 `;
 
-        systemPrompt = `You are a customer communication analyst for a WhatsApp Business account. Analyze the inbox data and provide:
+        systemPrompt = `You are a customer communication analyst for a email Business account. Analyze the inbox data and provide:
 1. Inbox health summary (workload, response gaps)
 2. Top 3-5 topics/themes customers are asking about (based on the sample messages)
 3. Sentiment overview (are messages generally positive, neutral, or complaints?)

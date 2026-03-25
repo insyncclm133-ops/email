@@ -115,7 +115,7 @@ function buildRecommendations(patterns: ErrorPattern[]): string[] {
         recs.push("Validate phone number formats before importing contacts (E.164 format recommended).");
         break;
       case "Unapproved Templates":
-        recs.push("Ensure all templates are approved in the WhatsApp Business Manager before sending campaigns.");
+        recs.push("Review template content and ensure email subjects are configured before sending campaigns.");
         break;
       case "API Rate Limiting":
         recs.push("Reduce sending speed or stagger campaigns to avoid API rate limits.");
@@ -130,7 +130,7 @@ function buildRecommendations(patterns: ErrorPattern[]): string[] {
         recs.push("Check API provider status and consider retry mechanisms for timed-out messages.");
         break;
       case "Media Size Issues":
-        recs.push("Compress media files to meet WhatsApp size limits (16MB for media, 100MB for documents).");
+        recs.push("Ensure email content is well-formatted and within reasonable size limits.");
         break;
       case "Other Errors":
         recs.push("Review unclassified errors in the message logs for additional troubleshooting.");

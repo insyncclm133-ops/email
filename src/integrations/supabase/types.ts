@@ -102,6 +102,11 @@ export type Database = {
           status: string
           template_id: string | null
           template_message: string | null
+          subject: string | null
+          from_name: string | null
+          from_email: string | null
+          reply_to: string | null
+          preview_text: string | null
           updated_at: string
           user_id: string
         }
@@ -116,6 +121,11 @@ export type Database = {
           status?: string
           template_id?: string | null
           template_message?: string | null
+          subject?: string | null
+          from_name?: string | null
+          from_email?: string | null
+          reply_to?: string | null
+          preview_text?: string | null
           updated_at?: string
           user_id: string
         }
@@ -130,6 +140,11 @@ export type Database = {
           status?: string
           template_id?: string | null
           template_message?: string | null
+          subject?: string | null
+          from_name?: string | null
+          from_email?: string | null
+          reply_to?: string | null
+          preview_text?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -160,6 +175,10 @@ export type Database = {
           phone_number: string
           source: string | null
           tags: string[] | null
+          bounce_status: string | null
+          last_opened_at: string | null
+          last_clicked_at: string | null
+          unsubscribed_at: string | null
           updated_at: string
           user_id: string
         }
@@ -172,6 +191,10 @@ export type Database = {
           phone_number: string
           source?: string | null
           tags?: string[] | null
+          bounce_status?: string | null
+          last_opened_at?: string | null
+          last_clicked_at?: string | null
+          unsubscribed_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -184,6 +207,10 @@ export type Database = {
           phone_number?: string
           source?: string | null
           tags?: string[] | null
+          bounce_status?: string | null
+          last_opened_at?: string | null
+          last_clicked_at?: string | null
+          unsubscribed_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -206,6 +233,7 @@ export type Database = {
           delivered_at: string | null
           error_message: string | null
           exotel_message_id: string | null
+          resend_message_id: string | null
           id: string
           interactive_data: Record<string, unknown> | null
           media_url: string | null
@@ -214,6 +242,12 @@ export type Database = {
           read_at: string | null
           sent_at: string | null
           status: string
+          subject: string | null
+          opened_at: string | null
+          clicked_at: string | null
+          bounced_at: string | null
+          bounce_type: string | null
+          unsubscribed_at: string | null
           updated_at: string
         }
         Insert: {
@@ -224,6 +258,7 @@ export type Database = {
           delivered_at?: string | null
           error_message?: string | null
           exotel_message_id?: string | null
+          resend_message_id?: string | null
           id?: string
           interactive_data?: Record<string, unknown> | null
           media_url?: string | null
@@ -232,6 +267,12 @@ export type Database = {
           read_at?: string | null
           sent_at?: string | null
           status?: string
+          subject?: string | null
+          opened_at?: string | null
+          clicked_at?: string | null
+          bounced_at?: string | null
+          bounce_type?: string | null
+          unsubscribed_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -242,6 +283,7 @@ export type Database = {
           delivered_at?: string | null
           error_message?: string | null
           exotel_message_id?: string | null
+          resend_message_id?: string | null
           id?: string
           interactive_data?: Record<string, unknown> | null
           media_url?: string | null
@@ -250,6 +292,12 @@ export type Database = {
           read_at?: string | null
           sent_at?: string | null
           status?: string
+          subject?: string | null
+          opened_at?: string | null
+          clicked_at?: string | null
+          bounced_at?: string | null
+          bounce_type?: string | null
+          unsubscribed_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -322,6 +370,10 @@ export type Database = {
           exotel_waba_id: string | null
           exotel_account_sid: string | null
           exotel_sender_number: string | null
+          from_email: string | null
+          from_name: string | null
+          from_domain: string | null
+          reply_to: string | null
           is_configured: boolean
           created_at: string
           updated_at: string
@@ -335,6 +387,10 @@ export type Database = {
           exotel_waba_id?: string | null
           exotel_account_sid?: string | null
           exotel_sender_number?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          from_domain?: string | null
+          reply_to?: string | null
           is_configured?: boolean
           created_at?: string
           updated_at?: string
@@ -348,6 +404,10 @@ export type Database = {
           exotel_waba_id?: string | null
           exotel_account_sid?: string | null
           exotel_sender_number?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          from_domain?: string | null
+          reply_to?: string | null
           is_configured?: boolean
           created_at?: string
           updated_at?: string
@@ -357,6 +417,88 @@ export type Database = {
             foreignKeyName: "org_credentials_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sender_domains: {
+        Row: {
+          id: string
+          org_id: string
+          domain: string
+          resend_domain_id: string | null
+          status: string
+          dns_records: Record<string, unknown>[]
+          verified_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          domain: string
+          resend_domain_id?: string | null
+          status?: string
+          dns_records?: Record<string, unknown>[]
+          verified_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          domain?: string
+          resend_domain_id?: string | null
+          status?: string
+          dns_records?: Record<string, unknown>[]
+          verified_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sender_domains_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unsubscribes: {
+        Row: {
+          id: string
+          org_id: string
+          contact_id: string | null
+          email: string
+          reason: string | null
+          unsubscribed_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          contact_id?: string | null
+          email: string
+          reason?: string | null
+          unsubscribed_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          contact_id?: string | null
+          email?: string
+          reason?: string | null
+          unsubscribed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unsubscribes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -445,6 +587,9 @@ export type Database = {
           name: string
           org_id: string
           status: string | null
+          subject: string | null
+          html_content: string | null
+          preview_text: string | null
           updated_at: string
           user_id: string
         }
@@ -459,6 +604,9 @@ export type Database = {
           name: string
           org_id: string
           status?: string | null
+          subject?: string | null
+          html_content?: string | null
+          preview_text?: string | null
           updated_at?: string
           user_id: string
         }
@@ -473,6 +621,9 @@ export type Database = {
           name?: string
           org_id?: string
           status?: string | null
+          subject?: string | null
+          html_content?: string | null
+          preview_text?: string | null
           updated_at?: string
           user_id?: string
         }

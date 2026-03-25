@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import {
-  MessageCircle,
+  Mail,
   ArrowLeft,
   Sparkles,
   Shield,
@@ -260,7 +260,7 @@ export default function Login() {
             className="flex items-center gap-2.5"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 shadow-lg backdrop-blur-sm">
-              <MessageCircle className="h-5 w-5 text-white" />
+              <Mail className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold text-white">In-Sync</span>
           </motion.div>
@@ -370,7 +370,7 @@ export default function Login() {
                   transition={{ duration: 0.4, delay: 0.3, type: "spring" }}
                   className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/25"
                 >
-                  <MessageCircle className="h-7 w-7 text-primary-foreground" />
+                  <Mail className="h-7 w-7 text-primary-foreground" />
                 </motion.div>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   {isForgotPassword
@@ -383,7 +383,7 @@ export default function Login() {
                   {isForgotPassword
                     ? "Enter your email and we'll send you a reset link"
                     : isSignUp
-                    ? "Sign up to start managing your WhatsApp campaigns"
+                    ? "Sign up to start managing your email campaigns"
                     : "Sign in to your campaign dashboard"}
                 </p>
               </div>
@@ -504,11 +504,11 @@ export default function Login() {
           {/* Mobile-only branding (when left panel hidden) */}
           <div className="mt-8 text-center lg:hidden">
             <div className="mx-auto mb-2 flex items-center justify-center gap-2">
-              <MessageCircle className="h-4 w-4 text-primary" />
+              <Mail className="h-4 w-4 text-primary" />
               <span className="text-sm font-semibold text-foreground">In-Sync</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              AI-powered WhatsApp campaign platform
+              AI-powered email broadcast platform
             </p>
           </div>
         </div>

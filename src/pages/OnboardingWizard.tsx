@@ -7,13 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
   Building2,
-  MessageCircle,
+  Mail,
   Users,
   Rocket,
   ArrowRight,
@@ -21,13 +22,14 @@ import {
   Check,
   SkipForward,
   Upload,
-  Plus,
-  X,
-  Smartphone,
-  Facebook,
+  Globe,
   Image,
-  ExternalLink,
   Loader2,
+  Copy,
+  RefreshCw,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 
 const INDUSTRIES = [
@@ -35,10 +37,7 @@ const INDUSTRIES = [
   "Real Estate", "Food & Beverage", "Travel", "Manufacturing", "Other",
 ];
 
-type SetupPath = null | "default" | "facebook";
-
-// Step IDs for cleaner conditional rendering
-type StepId = "profile" | "choose" | "numbers" | "register" | "facebook" | "invite" | "launch" | "placeholder";
+type StepId = "profile" | "domain" | "sender" | "invite" | "launch";
 
 interface StepDef {
   id: StepId;
@@ -47,34 +46,20 @@ interface StepDef {
   description: string;
 }
 
-const getSteps = (setupPath: SetupPath): StepDef[] => {
-  const base: StepDef[] = [
-    { id: "profile", title: "Business Profile", icon: Building2, description: "Tell us about your business" },
-    { id: "choose", title: "Connect WhatsApp", icon: MessageCircle, description: "Choose how to set up WhatsApp" },
-  ];
+const STEPS: StepDef[] = [
+  { id: "profile", title: "Business Profile", icon: Building2, description: "Tell us about your business" },
+  { id: "domain", title: "Verify Domain", icon: Globe, description: "Verify your sending domain" },
+  { id: "sender", title: "Sender Details", icon: Mail, description: "Configure your sender identity" },
+  { id: "invite", title: "Invite Team", icon: Users, description: "Add team members" },
+  { id: "launch", title: "Launch", icon: Rocket, description: "You're all set!" },
+];
 
-  if (setupPath === "default") {
-    base.push(
-      { id: "numbers", title: "Add Numbers", icon: Smartphone, description: "Add your WhatsApp numbers" },
-      { id: "register", title: "Register WhatsApp", icon: ExternalLink, description: "Complete registration on Meta" },
-    );
-  } else if (setupPath === "facebook") {
-    base.push(
-      { id: "facebook", title: "Facebook Setup", icon: Facebook, description: "Connect your Meta account" },
-    );
-  } else {
-    base.push(
-      { id: "placeholder", title: "Setup", icon: Smartphone, description: "Configure WhatsApp" },
-    );
-  }
-
-  base.push(
-    { id: "invite", title: "Invite Team", icon: Users, description: "Add team members" },
-    { id: "launch", title: "Launch", icon: Rocket, description: "You're all set!" },
-  );
-
-  return base;
-};
+interface DnsRecord {
+  type: string;
+  name: string;
+  value: string;
+  status?: string;
+}
 
 export default function OnboardingWizard() {
   const { user } = useAuth();
@@ -93,18 +78,19 @@ export default function OnboardingWizard() {
   const [logoPreview, setLogoPreview] = useState<string | null>(currentOrg?.logo_url ?? null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  // Step: Setup path
-  const [setupPath, setSetupPath] = useState<SetupPath>(null);
+  // Step: Domain
+  const [domainInput, setDomainInput] = useState("");
+  const [addingDomain, setAddingDomain] = useState(false);
+  const [domainAdded, setDomainAdded] = useState(false);
+  const [domainId, setDomainId] = useState<string | null>(null);
+  const [domainStatus, setDomainStatus] = useState<string>("pending");
+  const [dnsRecords, setDnsRecords] = useState<DnsRecord[]>([]);
+  const [verifying, setVerifying] = useState(false);
 
-  // Step: Phone numbers (default setup)
-  const [phoneNumbers, setPhoneNumbers] = useState<string[]>([""]);
-  const [phoneLogs, setPhoneLogs] = useState<Record<string, File | null>>({});
-  const [phoneLogoPreviews, setPhoneLogoPreviews] = useState<Record<string, string>>({});
-  const phoneLogoRefs = useRef<Record<number, HTMLInputElement | null>>({});
-
-  // Step: ISV registration (shared by both paths)
-  const [isvConnecting, setIsvConnecting] = useState(false);
-  const [isvConnected, setIsvConnected] = useState(false);
+  // Step: Sender details
+  const [fromName, setFromName] = useState(currentOrg?.name ?? "");
+  const [fromEmail, setFromEmail] = useState("");
+  const [replyTo, setReplyTo] = useState("");
 
   // Step: Invite team
   const [inviteEmail, setInviteEmail] = useState("");
@@ -114,9 +100,7 @@ export default function OnboardingWizard() {
     return null;
   }
 
-  const STEPS = getSteps(setupPath);
   const currentStepId = STEPS[step]?.id;
-
   const handleNext = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const handleBack = () => setStep((s) => Math.max(s - 1, 0));
 
@@ -171,133 +155,85 @@ export default function OnboardingWizard() {
     setLoading(false);
   };
 
-  // ── Choose setup path ──
-  const handleChooseSetup = (path: SetupPath) => {
-    setSetupPath(path);
-    handleNext();
-  };
+  // ── Add domain ──
+  const handleAddDomain = async () => {
+    if (!domainInput.trim()) return;
+    setAddingDomain(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-domains", {
+        body: { action: "add_domain", org_id: currentOrg.id, domain: domainInput.trim().toLowerCase() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-  // ── Phone numbers ──
-  const addPhoneField = () => {
-    if (phoneNumbers.length < 4) setPhoneNumbers([...phoneNumbers, ""]);
-  };
-
-  const removePhoneField = (index: number) => {
-    if (phoneNumbers.length > 1) setPhoneNumbers(phoneNumbers.filter((_, i) => i !== index));
-  };
-
-  const updatePhone = (index: number, value: string) => {
-    const updated = [...phoneNumbers];
-    updated[index] = value;
-    setPhoneNumbers(updated);
-  };
-
-  const handlePhoneLogoSelect = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ variant: "destructive", title: "File too large", description: "Logo must be under 5MB." });
-      return;
+      setDomainAdded(true);
+      setDomainId(data?.domain?.id || null);
+      setDomainStatus(data?.domain?.status || "pending");
+      setDnsRecords(data?.resend?.records || data?.domain?.dns_records || []);
+      toast({ title: "Domain added", description: "Configure the DNS records below." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
     }
-    const number = phoneNumbers[index];
-    setPhoneLogs((prev) => ({ ...prev, [number]: file }));
-    setPhoneLogoPreviews((prev) => ({ ...prev, [number]: URL.createObjectURL(file) }));
+    setAddingDomain(false);
   };
 
-  const uploadPhoneLogos = async (validNumbers: string[]): Promise<Record<string, string>> => {
-    const logoUrls: Record<string, string> = {};
-    for (const number of validNumbers) {
-      const file = phoneLogs[number];
-      if (!file) continue;
-      const cleanNum = number.replace(/[^0-9]/g, "");
-      const ext = file.name.split(".").pop();
-      const path = `${currentOrg.id}/phone-${cleanNum}.${ext}`;
-      const { error } = await supabase.storage.from("org-logos").upload(path, file, { upsert: true });
-      if (error) {
-        console.error(`Failed to upload logo for ${number}:`, error.message);
-        continue;
+  // ── Verify domain ──
+  const handleVerifyDomain = async () => {
+    if (!domainId) return;
+    setVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-domains", {
+        body: { action: "verify_domain", org_id: currentOrg.id, domain_id: domainId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setDomainStatus(data?.status || "pending");
+      if (data?.records) setDnsRecords(data.records);
+
+      if (data?.status === "verified") {
+        toast({ title: "Domain verified!", description: "You can now send emails from this domain." });
+        // Auto-populate from email
+        if (!fromEmail) setFromEmail(`newsletter@${domainInput.trim().toLowerCase()}`);
+      } else {
+        toast({ title: "Not yet verified", description: "DNS records may take up to 48 hours to propagate. Try again later." });
       }
-      const { data: urlData } = supabase.storage.from("org-logos").getPublicUrl(path);
-      logoUrls[number] = urlData.publicUrl;
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Verification failed", description: err.message });
     }
-    return logoUrls;
+    setVerifying(false);
   };
 
-  const handleSaveNumbers = async () => {
-    const validNumbers = phoneNumbers.map((n) => n.trim()).filter(Boolean);
-    if (validNumbers.length === 0) {
-      toast({ variant: "destructive", title: "Validation", description: "Add at least one phone number." });
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied to clipboard" });
+  };
+
+  // ── Save sender config ──
+  const handleSaveSender = async () => {
+    if (!fromEmail.trim() || !fromName.trim()) {
+      toast({ variant: "destructive", title: "Validation", description: "From name and email are required." });
       return;
     }
     setLoading(true);
     try {
-      // Upload per-number logos to storage
-      const logoUrls = await uploadPhoneLogos(validNumbers);
-
-      const { data, error } = await supabase.functions.invoke("whatsapp-onboarding", {
-        body: { action: "save_numbers", org_id: currentOrg.id, phone_numbers: validNumbers, phone_logos: logoUrls },
+      const { data, error } = await supabase.functions.invoke("manage-org", {
+        body: {
+          action: "update_credentials",
+          org_id: currentOrg.id,
+          from_name: fromName,
+          from_email: fromEmail,
+          reply_to: replyTo || fromEmail,
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast({ title: "Phone numbers saved" });
+      toast({ title: "Sender configuration saved" });
       handleNext();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
     }
     setLoading(false);
-  };
-
-  // ── Exotel ISV onboarding (used by both register & facebook steps) ──
-  const handleExotelConnect = async () => {
-    setIsvConnecting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("whatsapp-onboarding", {
-        body: { action: "generate_link", org_id: currentOrg.id },
-      });
-      if (error) throw error;
-      if (data?.error) {
-        toast({ variant: "destructive", title: "Error", description: data.error });
-        setIsvConnecting(false);
-        return;
-      }
-
-      // Extract the onboarding URL from Exotel's response
-      const onboardingUrl = data?.data?.response?.whatsapp?.isv?.data?.onboarding_url || data?.data?.onboarding_url || data?.data?.url;
-      if (onboardingUrl) {
-        const popup = window.open(onboardingUrl, "whatsapp_onboarding", "width=800,height=700,scrollbars=yes");
-
-        const pollTimer = setInterval(async () => {
-          if (popup?.closed) {
-            clearInterval(pollTimer);
-            await supabase.functions.invoke("whatsapp-onboarding", {
-              body: {
-                action: setupPath === "facebook" ? "save_facebook" : "save_numbers",
-                org_id: currentOrg.id,
-                ...(setupPath === "default" ? { phone_numbers: phoneNumbers.map((n) => n.trim()).filter(Boolean) } : {}),
-              },
-            });
-            setIsvConnected(true);
-            setIsvConnecting(false);
-            toast({ title: "WhatsApp registration initiated", description: "Your number(s) will be activated shortly." });
-
-            // Auto-trigger profile picture update in background (best-effort)
-            supabase.functions.invoke("whatsapp-onboarding", {
-              body: { action: "update_profile_pictures", org_id: currentOrg.id },
-            }).then(({ data }) => {
-              if (data?.success) {
-                console.log("Profile picture update results:", data.results);
-              }
-            }).catch(() => {});
-          }
-        }, 1000);
-      } else {
-        toast({ variant: "destructive", title: "Error", description: "Could not generate onboarding link. Please try again." });
-        setIsvConnecting(false);
-      }
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
-      setIsvConnecting(false);
-    }
   };
 
   // ── Invite team ──
@@ -348,72 +284,6 @@ export default function OnboardingWizard() {
     center: { x: 0, opacity: 1 },
     exit: (direction: number) => ({ x: direction > 0 ? -300 : 300, opacity: 0 }),
   };
-
-  // ── Shared ISV registration UI (used by both "register" and "facebook" steps) ──
-  const renderIsvStep = (contextLabel: string, infoItems: string[]) => (
-    <div className="space-y-5">
-      {!isvConnected ? (
-        <>
-          <div className="rounded-lg bg-blue-500/5 border border-blue-500/20 p-4">
-            <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400">{contextLabel}</h4>
-            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              {infoItems.map((item, i) => (
-                <li key={i}>{i + 1}. {item}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="flex justify-center">
-            <Button
-              onClick={handleExotelConnect}
-              disabled={isvConnecting}
-              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6"
-              size="lg"
-            >
-              {isvConnecting ? (
-                <><Loader2 className="h-5 w-5 animate-spin" /> Opening registration...</>
-              ) : (
-                <><ExternalLink className="h-5 w-5" /> Register on WhatsApp</>
-              )}
-            </Button>
-          </div>
-        </>
-      ) : (
-        <div className="flex flex-col items-center gap-3 py-4">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200 }}
-            className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10"
-          >
-            <Check className="h-8 w-8 text-green-500" />
-          </motion.div>
-          <h4 className="font-semibold text-green-700 dark:text-green-400">Registration Complete</h4>
-          <p className="text-sm text-muted-foreground text-center">
-            Your WhatsApp number(s) will be activated shortly after verification.
-          </p>
-        </div>
-      )}
-
-      <div className="flex justify-between gap-2 pt-2">
-        <Button variant="outline" onClick={handleBack} className="gap-2">
-          <ArrowLeft className="h-4 w-4" /> Back
-        </Button>
-        <div className="flex gap-2">
-          {!isvConnected && (
-            <Button variant="ghost" onClick={handleNext} className="gap-2">
-              <SkipForward className="h-4 w-4" /> Skip for now
-            </Button>
-          )}
-          {isvConnected && (
-            <Button onClick={handleNext} className="gap-2">
-              Continue <ArrowRight className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-12 overflow-hidden">
@@ -533,141 +403,190 @@ export default function OnboardingWizard() {
                 </div>
               )}
 
-              {/* ══════ Choose Setup Path ══════ */}
-              {currentStepId === "choose" && (
+              {/* ══════ Domain Verification ══════ */}
+              {currentStepId === "domain" && (
                 <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground text-center">
-                    How would you like to set up WhatsApp for your business?
-                  </p>
-                  <div className="grid gap-3">
-                    <button
-                      onClick={() => handleChooseSetup("default")}
-                      className="group flex items-start gap-4 rounded-lg border-2 border-muted p-4 text-left transition-all hover:border-primary hover:bg-primary/5"
-                    >
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <Smartphone className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">Default Setup</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Quickest way to get started. Add your WhatsApp phone numbers and we'll register them for you.
-                        </p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => handleChooseSetup("facebook")}
-                      className="group flex items-start gap-4 rounded-lg border-2 border-muted p-4 text-left transition-all hover:border-blue-500 hover:bg-blue-500/5"
-                    >
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-500">
-                        <Facebook className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">Connect with Facebook</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Already have a Meta Business account? Connect it to use your own WhatsApp Business API with full control.
-                        </p>
-                      </div>
-                    </button>
-                  </div>
-
-                  <div className="flex justify-start pt-2">
-                    <Button variant="outline" onClick={handleBack} className="gap-2">
-                      <ArrowLeft className="h-4 w-4" /> Back
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* ══════ Add Phone Numbers (Default path) ══════ */}
-              {currentStepId === "numbers" && (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Add up to 4 WhatsApp phone numbers with an optional profile picture for each.
-                  </p>
-
-                  <div className="space-y-4">
-                    {phoneNumbers.map((num, i) => (
-                      <div key={i} className="flex items-start gap-3 rounded-lg border border-muted p-3">
-                        <div
-                          onClick={() => phoneLogoRefs.current[i]?.click()}
-                          className="group relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30 bg-muted/50 transition-colors hover:border-primary/50 overflow-hidden"
-                        >
-                          {phoneLogoPreviews[num] ? (
-                            <img src={phoneLogoPreviews[num]} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <Image className="h-4 w-4 text-muted-foreground" />
-                          )}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                            <Upload className="h-3 w-3 text-white" />
+                  {!domainAdded ? (
+                    <>
+                      <div className="rounded-lg bg-blue-500/5 border border-blue-500/20 p-4">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                          <div className="text-sm text-muted-foreground">
+                            <p className="font-medium text-blue-700 dark:text-blue-400">Why verify a domain?</p>
+                            <p className="mt-1">
+                              Domain verification proves you own the domain, improving deliverability
+                              and preventing your emails from being marked as spam.
+                            </p>
                           </div>
                         </div>
-                        <input
-                          ref={(el) => { phoneLogoRefs.current[i] = el; }}
-                          type="file"
-                          accept="image/png,image/jpeg"
-                          className="hidden"
-                          onChange={(e) => handlePhoneLogoSelect(i, e)}
-                        />
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Input
-                              value={num}
-                              onChange={(e) => updatePhone(i, e.target.value)}
-                              placeholder="+91 98765 43210"
-                              className="flex-1"
-                            />
-                            {phoneNumbers.length > 1 && (
-                              <Button variant="ghost" size="icon" onClick={() => removePhoneField(i)} className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive">
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-muted-foreground">
-                            {phoneLogoPreviews[num] ? "Logo attached" : "Click circle to add a profile picture (optional)"}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Your Sending Domain</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={domainInput}
+                            onChange={(e) => setDomainInput(e.target.value)}
+                            placeholder="yourdomain.com"
+                            className="flex-1"
+                            onKeyDown={(e) => e.key === "Enter" && handleAddDomain()}
+                          />
+                          <Button onClick={handleAddDomain} disabled={addingDomain || !domainInput.trim()}>
+                            {addingDomain ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Globe className="h-5 w-5 text-primary" />
+                        <span className="font-semibold">{domainInput}</span>
+                        {domainStatus === "verified" ? (
+                          <Badge className="bg-green-500/10 text-green-700 border-green-500/20">Verified</Badge>
+                        ) : (
+                          <Badge variant="secondary">Pending</Badge>
+                        )}
+                      </div>
+
+                      {domainStatus === "verified" ? (
+                        <div className="flex flex-col items-center gap-3 py-4">
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200 }}
+                            className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10"
+                          >
+                            <CheckCircle2 className="h-8 w-8 text-green-500" />
+                          </motion.div>
+                          <h4 className="font-semibold text-green-700 dark:text-green-400">Domain Verified!</h4>
+                          <p className="text-sm text-muted-foreground text-center">
+                            You can now send emails from this domain.
                           </p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground">
+                            Add these DNS records at your domain registrar, then click Verify.
+                          </p>
 
-                  {phoneNumbers.length < 4 && (
-                    <Button variant="outline" size="sm" onClick={addPhoneField} className="gap-2">
-                      <Plus className="h-3 w-3" /> Add another number
-                    </Button>
+                          {dnsRecords.length > 0 && (
+                            <div className="rounded-lg border border-border overflow-hidden">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="bg-muted/50">
+                                    <th className="px-3 py-2 text-left font-medium">Type</th>
+                                    <th className="px-3 py-2 text-left font-medium">Name</th>
+                                    <th className="px-3 py-2 text-left font-medium">Value</th>
+                                    <th className="px-3 py-2 w-8"></th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {dnsRecords.map((rec, i) => (
+                                    <tr key={i} className="border-t border-border">
+                                      <td className="px-3 py-2">
+                                        <Badge variant="outline" className="font-mono text-[10px]">{rec.type}</Badge>
+                                      </td>
+                                      <td className="px-3 py-2 font-mono break-all max-w-[120px]">{rec.name}</td>
+                                      <td className="px-3 py-2 font-mono break-all max-w-[180px]">{rec.value}</td>
+                                      <td className="px-3 py-2">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6"
+                                          onClick={() => copyToClipboard(rec.value)}
+                                        >
+                                          <Copy className="h-3 w-3" />
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+
+                          <div className="flex justify-center pt-2">
+                            <Button
+                              onClick={handleVerifyDomain}
+                              disabled={verifying}
+                              variant="outline"
+                              className="gap-2"
+                            >
+                              {verifying ? (
+                                <><Loader2 className="h-4 w-4 animate-spin" /> Checking...</>
+                              ) : (
+                                <><RefreshCw className="h-4 w-4" /> Verify DNS Records</>
+                              )}
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </>
                   )}
 
                   <div className="flex justify-between gap-2 pt-4">
                     <Button variant="outline" onClick={handleBack} className="gap-2">
                       <ArrowLeft className="h-4 w-4" /> Back
                     </Button>
-                    <Button onClick={handleSaveNumbers} disabled={loading} className="gap-2">
-                      {loading ? "Saving..." : <>Save & Continue <ArrowRight className="h-4 w-4" /></>}
-                    </Button>
+                    <div className="flex gap-2">
+                      {domainStatus !== "verified" && (
+                        <Button variant="ghost" onClick={handleNext} className="gap-2">
+                          <SkipForward className="h-4 w-4" /> Skip for now
+                        </Button>
+                      )}
+                      {(domainStatus === "verified" || domainAdded) && (
+                        <Button onClick={handleNext} className="gap-2">
+                          Continue <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* ══════ Register WhatsApp (Default path - after numbers) ══════ */}
-              {currentStepId === "register" && renderIsvStep(
-                "Register your numbers on WhatsApp",
-                [
-                  "A new window will open for WhatsApp Business registration",
-                  "Log in with a Facebook account (create one if needed)",
-                  "Your phone number(s) will be linked to a WhatsApp Business Account",
-                  "Verification will be completed via SMS or call",
-                ],
-              )}
-
-              {/* ══════ Facebook Setup (Facebook path) ══════ */}
-              {currentStepId === "facebook" && renderIsvStep(
-                "Connect your existing Meta Business account",
-                [
-                  "A new window will open for Meta Business signup",
-                  "Log in with your Facebook account",
-                  "Select your existing WhatsApp Business Account",
-                  "Grant access to connect it with In-Sync",
-                ],
+              {/* ══════ Sender Details ══════ */}
+              {currentStepId === "sender" && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>From Name *</Label>
+                    <Input
+                      value={fromName}
+                      onChange={(e) => setFromName(e.target.value)}
+                      placeholder="Your Company Name"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      How your name appears in the recipient's inbox
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>From Email *</Label>
+                    <Input
+                      value={fromEmail}
+                      onChange={(e) => setFromEmail(e.target.value)}
+                      placeholder="newsletter@yourdomain.com"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Must use a verified domain
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Reply-To Email (optional)</Label>
+                    <Input
+                      value={replyTo}
+                      onChange={(e) => setReplyTo(e.target.value)}
+                      placeholder="support@yourdomain.com"
+                    />
+                  </div>
+                  <div className="flex justify-between gap-2 pt-4">
+                    <Button variant="outline" onClick={handleBack} className="gap-2">
+                      <ArrowLeft className="h-4 w-4" /> Back
+                    </Button>
+                    <Button onClick={handleSaveSender} disabled={loading} className="gap-2">
+                      {loading ? "Saving..." : <>Save & Continue <ArrowRight className="h-4 w-4" /></>}
+                    </Button>
+                  </div>
+                </div>
               )}
 
               {/* ══════ Invite Team ══════ */}
@@ -708,7 +627,7 @@ export default function OnboardingWizard() {
                   <div>
                     <h3 className="text-lg font-bold">You're all set!</h3>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      Your organization is ready. Head to the dashboard to create your first campaign.
+                      Your organization is ready. Head to the dashboard to create your first email campaign.
                     </p>
                   </div>
                   <div className="flex justify-between gap-2 pt-4">
@@ -726,13 +645,13 @@ export default function OnboardingWizard() {
         </CardContent>
       </Card>
 
-      {/* WhatsApp marketing stats ribbon */}
+      {/* Email marketing stats ribbon */}
       <div className="relative z-10 mt-10 grid w-full max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { value: "98%", label: "Open Rate" },
-          { value: "45-60%", label: "Click-through Rate" },
-          { value: "2B+", label: "WhatsApp Users" },
-          { value: "10x", label: "vs Email ROI" },
+          { value: "4200%", label: "Avg. Email ROI" },
+          { value: "21%", label: "Avg. Open Rate" },
+          { value: "4B+", label: "Email Users" },
+          { value: "$42", label: "Return per $1" },
         ].map(({ value, label }) => (
           <div key={label} className="rounded-lg border border-border/50 bg-card/60 backdrop-blur-sm px-4 py-3 text-center">
             <p className="text-lg font-bold text-primary">{value}</p>

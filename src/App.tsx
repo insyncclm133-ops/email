@@ -16,14 +16,10 @@ import Contacts from "./pages/Contacts";
 import Campaigns from "./pages/Campaigns";
 import CampaignDetail from "./pages/CampaignDetail";
 import Templates from "./pages/Templates";
-import Communications from "./pages/Communications";
-
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import Billing from "./pages/Billing";
 import Automations from "./pages/Automations";
-import Chatbots from "./pages/Chatbots";
-import ChatbotBuilder from "./pages/ChatbotBuilder";
 import Developers from "./pages/Developers";
 import Analytics from "./pages/Analytics";
 import AuditLog from "./pages/AuditLog";
@@ -60,11 +56,7 @@ const App = () => (
               <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
               <Route path="/campaigns/:id" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
               <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
-              <Route path="/communications" element={<ProtectedRoute><Communications /></ProtectedRoute>} />
-
               <Route path="/automations" element={<ProtectedRoute><Automations /></ProtectedRoute>} />
-              <Route path="/chatbot" element={<ProtectedRoute><Chatbots /></ProtectedRoute>} />
-              <Route path="/chatbot/:id" element={<ProtectedRoute><ChatbotBuilder /></ProtectedRoute>} />
               <Route path="/developers" element={<ProtectedRoute><Developers /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
               <Route path="/audit-log" element={<ProtectedRoute requireRole="admin"><AuditLog /></ProtectedRoute>} />

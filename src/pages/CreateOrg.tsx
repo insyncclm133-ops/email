@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, ArrowRight, MessageCircle, Users, Rocket } from "lucide-react";
+import { Building2, ArrowRight, Mail, Users, Rocket } from "lucide-react";
 
 const INDUSTRIES = [
   "E-Commerce",
@@ -92,7 +92,7 @@ export default function CreateOrg() {
         <div className="relative z-10 flex flex-1 flex-col justify-center px-12 xl:px-16">
           <div className="flex items-center gap-3 mb-12">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
-              <MessageCircle className="h-5 w-5 text-white" />
+              <Mail className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold text-white">In-Sync</span>
           </div>
@@ -133,7 +133,7 @@ export default function CreateOrg() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-white/40">Powered by Exotel WhatsApp Business API</p>
+          <p className="text-xs text-white/40">AI-Powered Email Broadcast Platform</p>
         </div>
       </div>
 

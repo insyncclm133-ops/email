@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageCircle, ArrowLeft } from "lucide-react";
+import { Mail, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ResetPassword() {
@@ -56,7 +56,7 @@ export default function ResetPassword() {
         <Card className="w-full max-w-md border-border shadow-xl">
           <CardHeader className="text-center">
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
-              <MessageCircle className="h-7 w-7 text-primary-foreground" />
+              <Mail className="h-7 w-7 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl font-bold">Verifying link...</CardTitle>
             <CardDescription>Please wait while we verify your reset link.</CardDescription>
@@ -88,7 +88,7 @@ export default function ResetPassword() {
       <Card className="w-full max-w-md border-border shadow-xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
-            <MessageCircle className="h-7 w-7 text-primary-foreground" />
+            <Mail className="h-7 w-7 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold">Set new password</CardTitle>
           <CardDescription>Choose a strong password for your account.</CardDescription>

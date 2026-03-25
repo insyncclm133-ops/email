@@ -77,9 +77,18 @@ function parseCsv(text: string): { headers: string[]; rows: CsvRow[] } {
   return { headers, rows };
 }
 
+function isEmailColumn(h: string): boolean {
+  const l = h.toLowerCase();
+  return l.includes("email") || l === "e-mail" || l === "mail";
+}
+
 function isPhoneColumn(h: string): boolean {
   const l = h.toLowerCase();
-  return l.includes("phone") || l.includes("mobile") || l === "number" || l === "whatsapp";
+  return l.includes("phone") || l.includes("mobile") || l === "number";
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
 function isValidPhone(phone: string): boolean {
@@ -87,28 +96,11 @@ function isValidPhone(phone: string): boolean {
   return /^\+?\d{10,15}$/.test(cleaned);
 }
 
-/** Normalize phone to include country code (default 91 for India). */
 function normalizePhone(phone: string): string {
   let cleaned = phone.replace(/[\s\-\(\)\+]/g, "");
-  // 10-digit Indian number → prepend 91
   if (/^\d{10}$/.test(cleaned)) cleaned = "91" + cleaned;
   return cleaned;
 }
-
-type MediaType = "image" | "video" | "document" | null;
-
-function detectMediaType(content: string): MediaType {
-  if (content.startsWith("[Image Header]")) return "image";
-  if (content.startsWith("[Video Header]")) return "video";
-  if (content.startsWith("[Document Header]")) return "document";
-  return null;
-}
-
-const mediaAcceptMap: Record<string, string> = {
-  image: "image/jpeg,image/png",
-  video: "video/mp4",
-  document: "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-};
 
 const statusColor: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -198,7 +190,7 @@ function CampaignList({ onNew }: { onNew: () => void }) {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Campaigns</h1>
-          <p className="text-muted-foreground">Create and manage WhatsApp campaigns</p>
+          <p className="text-muted-foreground">Create and manage email broadcast campaigns</p>
         </div>
         <Button className="gap-2" onClick={onNew}>
           <Plus className="h-4 w-4" /> New Campaign
@@ -263,11 +255,11 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mediaInputRef = useRef<HTMLInputElement>(null);
 
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [campaignName, setCampaignName] = useState("");
+  const [subject, setSubject] = useState("");
 
   // CSV
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
@@ -278,9 +270,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   // Variable mapping
   const [variableMapping, setVariableMapping] = useState<Record<string, string>>({});
 
-  // Media
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
 
   // Scheduling
   const [scheduleMode, setScheduleMode] = useState(false);
@@ -295,12 +284,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
     () => (selectedTemplate ? extractTemplateVars(selectedTemplate.content || "") : []),
     [selectedTemplate]
   );
-
-  const mediaType = useMemo(
-    () => (selectedTemplate ? detectMediaType(selectedTemplate.content || "") : null),
-    [selectedTemplate]
-  );
-  const needsMedia = mediaType !== null;
 
   const displayContent = useMemo(
     () => (selectedTemplate ? stripContentMarkers(selectedTemplate.content || "") : ""),
@@ -318,9 +301,13 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
       .then(({ data }) => setTemplates((data as any) || []));
   }, [currentOrg]);
 
-  // Phone column detection
+  // Email column detection (primary), phone column (optional)
+  const emailColumn = useMemo(() => {
+    return csvHeaders.find((h) => isEmailColumn(h)) || "";
+  }, [csvHeaders]);
+
   const phoneColumn = useMemo(() => {
-    return csvHeaders.find((h) => isPhoneColumn(h)) || csvHeaders[0] || "";
+    return csvHeaders.find((h) => isPhoneColumn(h)) || "";
   }, [csvHeaders]);
 
   // Auto-map variables
@@ -353,41 +340,49 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
         toast({ variant: "destructive", title: "Invalid CSV", description: "No columns found." });
         return;
       }
-      const phoneCol = headers.find((h) => isPhoneColumn(h));
-      if (!phoneCol) {
-        toast({ variant: "destructive", title: "Missing phone column", description: "CSV must have a phone/mobile column." });
+      const emailCol = headers.find((h) => isEmailColumn(h));
+      if (!emailCol) {
+        toast({ variant: "destructive", title: "Missing email column", description: "CSV must have an email column." });
         return;
       }
 
       // Validate rows
       const errors: CsvError[] = [];
       const validRows: CsvRow[] = [];
-      const seenPhones = new Set<string>();
+      const seenEmails = new Set<string>();
+
+      // Also normalize phone if present
+      const phoneCol = headers.find((h) => isPhoneColumn(h));
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        const rawPhone = row[phoneCol] || "";
-        const rowNum = i + 2; // +2 for header row + 0-index
+        const rawEmail = row[emailCol] || "";
+        const rowNum = i + 2;
 
-        if (!rawPhone) {
-          errors.push({ row: rowNum, reason: "Missing phone number" });
+        if (!rawEmail) {
+          errors.push({ row: rowNum, reason: "Missing email" });
           continue;
         }
 
-        if (!isValidPhone(rawPhone)) {
-          errors.push({ row: rowNum, reason: `Invalid phone: ${rawPhone}` });
+        if (!isValidEmail(rawEmail)) {
+          errors.push({ row: rowNum, reason: `Invalid email: ${rawEmail}` });
           continue;
         }
 
-        const normalized = normalizePhone(rawPhone);
-        if (seenPhones.has(normalized)) {
-          errors.push({ row: rowNum, reason: `Duplicate: ${rawPhone}` });
+        const normalizedEmail = rawEmail.trim().toLowerCase();
+        if (seenEmails.has(normalizedEmail)) {
+          errors.push({ row: rowNum, reason: `Duplicate: ${rawEmail}` });
           continue;
         }
 
-        seenPhones.add(normalized);
-        // Store normalized phone (with country code) back into the row
-        row[phoneCol] = normalized;
+        seenEmails.add(normalizedEmail);
+        row[emailCol] = normalizedEmail;
+
+        // Normalize phone if present
+        if (phoneCol && row[phoneCol] && isValidPhone(row[phoneCol])) {
+          row[phoneCol] = normalizePhone(row[phoneCol]);
+        }
+
         validRows.push(row);
       }
 
@@ -407,10 +402,10 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   const downloadCsvTemplate = () => {
     if (!selectedTemplate) return;
     const vars = templateVars.map((v) => `variable_${v.replace(/\D/g, "")}`);
-    const cols = ["phone_number", "name", ...vars];
+    const cols = ["email", "name", ...vars];
     const header = cols.join(",");
-    const row1 = ["+919876543210", "John", ...vars.map((_, i) => `sample_value_${i + 1}`)].join(",");
-    const row2 = ["+919876543211", "Jane", ...vars.map((_, i) => `sample_value_${i + 1}`)].join(",");
+    const row1 = ["john@example.com", "John", ...vars.map((_, i) => `sample_value_${i + 1}`)].join(",");
+    const row2 = ["jane@example.com", "Jane", ...vars.map((_, i) => `sample_value_${i + 1}`)].join(",");
     const csv = [header, row1, row2].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -421,33 +416,14 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
     URL.revokeObjectURL(url);
   };
 
-  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setMediaFile(file);
-    if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
-      setMediaPreviewUrl(URL.createObjectURL(file));
-    } else {
-      setMediaPreviewUrl(null);
-    }
-  };
-
   const previewMessage = useMemo(() => {
     if (!selectedTemplate) return "";
     if (csvRows.length === 0) return displayContent;
     return resolveMessage(selectedTemplate.content || "", variableMapping, csvRows[0]);
   }, [selectedTemplate, displayContent, variableMapping, csvRows]);
 
-  // Estimated cost
-  const estimatedCost = useMemo(() => {
-    const rate = selectedTemplate?.category?.toLowerCase() === "utility" ? 0.2
-      : selectedTemplate?.category?.toLowerCase() === "authentication" ? 0.2
-        : 1.0;
-    const gst = rate * 0.18;
-    return { perMsg: rate + gst, total: Math.round(csvRows.length * (rate + gst) * 100) / 100, count: csvRows.length };
-  }, [csvRows, selectedTemplate]);
 
-  const canLaunch = !!selectedTemplate && csvRows.length > 0 && (!needsMedia || !!mediaFile);
+  const canLaunch = !!selectedTemplate && csvRows.length > 0 && !!subject;
 
   const launch = async () => {
     if (!user || !currentOrg || !selectedTemplate) return;
@@ -455,54 +431,43 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
     setUploadProgress({ done: 0, total: csvRows.length, failed: 0 });
 
     try {
-      // 1. Upload media if needed
-      let mediaUrl: string | null = null;
-      if (mediaFile) {
-        const ext = mediaFile.name.split(".").pop();
-        const path = `${currentOrg.id}/${user.id}/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("template-media").upload(path, mediaFile);
-        if (upErr) throw upErr;
-        const { data: urlData } = supabase.storage.from("template-media").getPublicUrl(path);
-        mediaUrl = urlData.publicUrl;
-      }
-
-      // 2. Create campaign — store stripped content for display, raw stays in templates.content
+      // 1. Create campaign
       const { data: campaign, error: campErr } = await supabase
         .from("campaigns")
         .insert({
           user_id: user.id,
           org_id: currentOrg.id,
           name: campaignName || `${selectedTemplate.name} - ${new Date().toLocaleDateString()}`,
+          subject: subject || (selectedTemplate as any).subject || selectedTemplate.name,
           template_id: selectedTemplate.id,
           template_message: stripContentMarkers(selectedTemplate.content),
-          media_url: mediaUrl,
           variable_mapping: variableMapping,
           message_category: (selectedTemplate.category || "marketing").toLowerCase(),
-        })
+        } as any)
         .select("id")
         .single();
       if (campErr) throw campErr;
 
       // 3. Prepare contact inserts
       const nameCol = csvHeaders.find((h) => h.toLowerCase() === "name");
-      const emailCol = csvHeaders.find((h) => h.toLowerCase().includes("email"));
       const contactInserts = csvRows.map((row) => {
-        const phone = row[phoneColumn] || "";
+        const email = row[emailColumn] || "";
+        const phone = phoneColumn ? row[phoneColumn] || "" : "";
         const customFields: Record<string, string> = {};
         for (const h of csvHeaders) {
-          if (h === phoneColumn || h === nameCol || h === emailCol) continue;
+          if (h === emailColumn || h === phoneColumn || h === nameCol) continue;
           if (row[h]) customFields[h] = row[h];
         }
         return {
           user_id: user.id,
           org_id: currentOrg.id,
-          phone_number: phone,
+          phone_number: phone || email, // phone_number used as fallback unique key
+          email,
           name: nameCol ? row[nameCol] || null : null,
-          email: emailCol ? row[emailCol] || null : null,
           source: "campaign_csv",
           custom_fields: customFields,
         };
-      }).filter((c) => c.phone_number);
+      }).filter((c) => c.email);
 
       // 4. Process in chunks of UPLOAD_BATCH (5000), each chunk sub-batched by UPSERT_BATCH (500)
       // On batch failure, retry record-by-record to isolate bad rows and continue
@@ -647,8 +612,19 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                 <Input
                   value={campaignName}
                   onChange={(e) => setCampaignName(e.target.value)}
-                  placeholder="e.g., March Promo Blast"
+                  placeholder="e.g., March Newsletter"
                 />
+              </div>
+              <div>
+                <Label>Subject Line *</Label>
+                <Input
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="e.g., Your weekly update from Acme"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Supports variables like {"{{1}}"} from your template
+                </p>
               </div>
               <div>
                 <Label>Template</Label>
@@ -786,49 +762,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
             </Card>
           )}
 
-          {/* Section 4: Attach Media (conditional) */}
-          {needsMedia && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">
-                  Attach {mediaType === "image" ? "Image" : mediaType === "video" ? "Video" : "Document"}
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Required by this template's {mediaType} header
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => mediaInputRef.current?.click()}>
-                  <Upload className="h-3.5 w-3.5" /> Upload
-                </Button>
-                <input
-                  ref={mediaInputRef}
-                  type="file"
-                  accept={mediaType ? mediaAcceptMap[mediaType] : ""}
-                  className="hidden"
-                  onChange={handleMediaUpload}
-                />
-                {mediaFile && (
-                  <div className="flex items-center gap-3">
-                    {mediaPreviewUrl && mediaFile.type.startsWith("image/") && (
-                      <img src={mediaPreviewUrl} alt="" className="h-16 w-16 rounded object-cover" />
-                    )}
-                    {mediaPreviewUrl && mediaFile.type.startsWith("video/") && (
-                      <video src={mediaPreviewUrl} className="h-16 w-16 rounded object-cover" muted />
-                    )}
-                    <div>
-                      <p className="text-sm font-medium">{mediaFile.name}</p>
-                      <p className="text-xs text-muted-foreground">{(mediaFile.size / 1048576).toFixed(1)} MB</p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setMediaFile(null); setMediaPreviewUrl(null); }}>
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
           {/* Launch Bar */}
           {selectedTemplate && csvRows.length > 0 && (
             <Card>
@@ -837,15 +770,11 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                   <div className="flex gap-6 text-sm">
                     <div>
                       <span className="text-muted-foreground">Recipients:</span>{" "}
-                      <span className="font-semibold">{estimatedCost.count.toLocaleString()}</span>
+                      <span className="font-semibold">{csvRows.length.toLocaleString()}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Est. Cost:</span>{" "}
-                      <span className="font-semibold">₹{estimatedCost.total}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Category:</span>{" "}
-                      <span className="font-semibold capitalize">{selectedTemplate.category || "marketing"}</span>
+                      <span className="text-muted-foreground">Subject:</span>{" "}
+                      <span className="font-semibold truncate max-w-[200px] inline-block align-bottom">{subject || "—"}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -901,26 +830,34 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
           )}
         </div>
 
-        {/* ─── Right: Message Preview ─── */}
+        {/* ─── Right: Email Preview ─── */}
         {selectedTemplate && (
           <Card className="w-80 shrink-0 sticky top-6">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Message Preview</CardTitle>
+              <CardTitle className="text-sm">Email Preview</CardTitle>
               {csvRows.length > 0 && (
                 <CardDescription className="text-xs">Using first row data</CardDescription>
               )}
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg bg-[#e5ddd5] p-3">
-                <div className="max-w-full rounded-lg rounded-tl-none bg-white p-2.5 shadow-sm">
-                  {mediaPreviewUrl && (
-                    <img src={mediaPreviewUrl} alt="" className="mb-2 w-full rounded object-cover" />
-                  )}
+              <div className="rounded-lg border bg-white overflow-hidden">
+                {/* Email header */}
+                <div className="border-b px-3 py-2 bg-muted/30 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <span className="text-muted-foreground font-medium">Subject:</span>
+                    <span className="text-foreground font-semibold truncate">{subject || "No subject"}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <span className="text-muted-foreground font-medium">To:</span>
+                    <span className="text-muted-foreground truncate">
+                      {csvRows.length > 0 && emailColumn ? csvRows[0][emailColumn] : "recipient@example.com"}
+                    </span>
+                  </div>
+                </div>
+                {/* Email body */}
+                <div className="px-3 py-3">
                   <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-gray-900">
                     {previewMessage || "Select a template to preview"}
-                  </p>
-                  <p className="mt-1 text-right text-[10px] text-gray-400">
-                    {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
               </div>

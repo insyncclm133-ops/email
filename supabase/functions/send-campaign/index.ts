@@ -1,16 +1,14 @@
-// send-campaign edge function — sends WhatsApp campaign messages in batches
+// send-campaign edge function — sends email campaign messages in batches via Resend
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExotelCreds } from "../_shared/get-exotel-creds.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// 30 messages/minute = 2s gap between sends. 10 per batch keeps each invocation ~25-30s.
 const BATCH_SIZE = 10;
-const SEND_DELAY_MS = 2000;
+const SEND_DELAY_MS = 200; // Delay between sends to respect Resend rate limits
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 serve(async (req) => {
@@ -20,7 +18,15 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  if (!RESEND_API_KEY) {
+    return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const body = await req.json();
@@ -48,7 +54,7 @@ serve(async (req) => {
       });
     }
 
-    // ── Auth: only check JWT for the initial call; chained calls use service role key ──
+    // ── Auth: only check JWT for the initial call ──
     if (!isChainedCall) {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader) {
@@ -65,7 +71,6 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Check user is admin of the campaign's org
       const { data: membership } = await supabase
         .from("org_memberships")
         .select("role")
@@ -81,8 +86,6 @@ serve(async (req) => {
     }
 
     // ── Atomic status check ──
-    // For the initial call, atomically transition draft→running (prevents double-launch).
-    // For chained calls, just verify it's still running.
     if (!isChainedCall) {
       const { data: transitioned } = await supabase.rpc("transition_campaign_status", {
         _campaign_id: campaign_id,
@@ -103,79 +106,56 @@ serve(async (req) => {
     }
 
     const orgId = campaign.org_id;
-    const messageCategory = campaign.message_category || "marketing";
-    const RATES: Record<string, number> = { marketing: 1.0, utility: 0.2, authentication: 0.2 };
-    const GST_RATE = 0.18;
-    const ratePerMsg = RATES[messageCategory] || 1.0;
-    const costPerMsg = ratePerMsg * (1 + GST_RATE);
 
-    // ── Balance check (per batch) ──
-    const { data: wallet } = await supabase
-      .from("org_wallets")
-      .select("balance")
+    // ── Get org email config ──
+    const { data: creds } = await supabase
+      .from("org_credentials")
+      .select("from_email, from_name, reply_to, from_domain")
       .eq("org_id", orgId)
       .maybeSingle();
 
-    const currentBalance = wallet?.balance ?? 0;
-    const batchCost = Math.round(BATCH_SIZE * costPerMsg * 100) / 100;
+    const fromEmail = campaign.from_email || creds?.from_email || "noreply@in-sync.co.in";
+    const fromName = campaign.from_name || creds?.from_name || "In-Sync";
+    const replyTo = campaign.reply_to || creds?.reply_to || fromEmail;
+    const fromHeader = `${fromName} <${fromEmail}>`;
 
-    if (currentBalance < batchCost) {
-      // Not enough for a full batch — check if we can send at least one
-      if (currentBalance < costPerMsg) {
-        await supabase.rpc("transition_campaign_status", { _campaign_id: campaign_id, _from_status: "running", _to_status: "failed" });
-        return new Response(JSON.stringify({
-          error: "Insufficient balance",
-          required: batchCost,
-          current_balance: currentBalance,
-          shortfall: Math.round((batchCost - currentBalance) * 100) / 100,
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
-    // ── Fetch template for WhatsApp API ──
-    let templateName = "";
-    let templateLanguage = "en";
+    // ── Fetch template ──
+    let emailSubject = campaign.subject || "";
+    let emailHtml = "";
     let tplContent = "";
+
     if (campaign.template_id) {
       const { data: tpl } = await supabase
         .from("templates")
-        .select("name, language, content, buttons")
+        .select("name, content, subject, html_content, preview_text")
         .eq("id", campaign.template_id)
         .single();
       if (tpl) {
-        templateName = tpl.name.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-        templateLanguage = tpl.language || "en";
+        emailSubject = emailSubject || tpl.subject || tpl.name;
+        emailHtml = tpl.html_content || "";
         tplContent = tpl.content || "";
       }
     }
 
-    if (!templateName) {
+    if (!emailSubject) {
       await supabase.rpc("transition_campaign_status", { _campaign_id: campaign_id, _from_status: "running", _to_status: "failed" });
-      return new Response(JSON.stringify({ error: "Template not found for campaign" }), {
+      return new Response(JSON.stringify({ error: "Campaign has no subject line" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Detect media type from template content markers (raw content with markers)
-    let headerMediaType: "image" | "video" | "document" | null = null;
-    if (tplContent.startsWith("[Image Header]")) headerMediaType = "image";
-    else if (tplContent.startsWith("[Video Header]")) headerMediaType = "video";
-    else if (tplContent.startsWith("[Document Header]")) headerMediaType = "document";
-
     // Extract variable numbers from template content
-    const varMatches = tplContent.match(/\{\{(\d+)\}\}/g);
+    const allContent = `${emailSubject} ${tplContent} ${emailHtml}`;
+    const varMatches = allContent.match(/\{\{(\d+)\}\}/g);
     const varNums = varMatches
       ? [...new Set(varMatches)].map((v) => v.replace(/\D/g, "")).sort((a, b) => parseInt(a) - parseInt(b))
       : [];
 
-    // ── Fetch this batch of contacts using range ──
+    // ── Fetch this batch of contacts ──
     const { data: assignments } = await supabase
       .from("campaign_contacts")
-      .select("contact_id, contacts(id, phone_number, name, custom_fields)")
+      .select("contact_id, contacts(id, email, name, phone_number, custom_fields)")
       .eq("campaign_id", campaign_id)
       .order("created_at", { ascending: true })
       .range(offset, offset + BATCH_SIZE - 1);
@@ -184,9 +164,8 @@ serve(async (req) => {
       .map((a: any) => a.contacts)
       .filter(Boolean);
 
-    // ── No contacts in this range — campaign is done ──
+    // ── No contacts — campaign is done ──
     if (contacts.length === 0) {
-      // Count sent vs failed to determine final status
       const { count: sentCount } = await supabase
         .from("messages")
         .select("id", { count: "exact", head: true })
@@ -212,33 +191,85 @@ serve(async (req) => {
       });
     }
 
-    // ── Resolve Exotel credentials ──
-    const creds = await getExotelCreds(supabase, orgId);
-    const exotelUrl = `https://${creds.apiKey}:${creds.apiToken}@${creds.subdomain}/v2/accounts/${creds.accountSid}/messages`;
-
     const mapping = campaign.variable_mapping as Record<string, string> | null;
 
     let batchSent = 0;
     let batchFailed = 0;
 
-    // ── Process this batch (rate-limited to 30 msgs/min) ──
+    // ── Process this batch ──
     for (let ci = 0; ci < contacts.length; ci++) {
       if (ci > 0) await sleep(SEND_DELAY_MS);
       const contact = contacts[ci];
+
+      // Skip contacts without email
+      if (!contact.email) {
+        const { data: msgRecord } = await supabase
+          .from("messages")
+          .insert({
+            campaign_id,
+            contact_id: contact.id,
+            content: "No email address",
+            status: "failed",
+            error_message: "Contact has no email address",
+            org_id: orgId,
+            subject: emailSubject,
+          })
+          .select("id")
+          .single();
+        batchFailed++;
+        continue;
+      }
+
+      // Check if contact is unsubscribed
+      const { data: unsub } = await supabase
+        .from("unsubscribes")
+        .select("id")
+        .eq("org_id", orgId)
+        .eq("email", contact.email)
+        .maybeSingle();
+
+      if (unsub) {
+        await supabase
+          .from("messages")
+          .insert({
+            campaign_id,
+            contact_id: contact.id,
+            content: "Unsubscribed",
+            status: "failed",
+            error_message: "Contact is unsubscribed",
+            org_id: orgId,
+            subject: emailSubject,
+          });
+        batchFailed++;
+        continue;
+      }
+
       const resolveField = (field: string): string => {
-        if (field === "name") return contact.name || "Customer";
+        if (field === "name") return contact.name || "there";
+        if (field === "email") return contact.email || "";
         if (field === "phone_number") return contact.phone_number || "";
-        if (field === "email") return (contact as any).email || "";
         return (contact.custom_fields as Record<string, string>)?.[field] || "";
       };
 
-      // Build personalized message for the DB record
-      let message = tplContent.replace(/^\[(Image|Video|Document) Header\]\n?/, "").trim();
+      // Resolve variables in subject, content, and HTML
+      let personalizedSubject = emailSubject;
+      let personalizedContent = tplContent;
+      let personalizedHtml = emailHtml;
+
       if (mapping) {
         for (const [varNum, field] of Object.entries(mapping)) {
-          message = message.replaceAll(`{{${varNum}}}`, resolveField(field));
+          const value = resolveField(field);
+          personalizedSubject = personalizedSubject.replaceAll(`{{${varNum}}}`, value);
+          personalizedContent = personalizedContent.replaceAll(`{{${varNum}}}`, value);
+          personalizedHtml = personalizedHtml.replaceAll(`{{${varNum}}}`, value);
         }
       }
+
+      // Build email body — use HTML template if available, otherwise wrap plain text
+      const finalHtml = personalizedHtml || `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          ${personalizedContent.split('\n').map((line: string) => `<p style="margin: 0 0 12px; line-height: 1.6; color: #333;">${line}</p>`).join('')}
+        </div>`;
 
       // Create message record
       const { data: msgRecord, error: msgInsertErr } = await supabase
@@ -246,8 +277,8 @@ serve(async (req) => {
         .insert({
           campaign_id,
           contact_id: contact.id,
-          content: message,
-          media_url: campaign.media_url,
+          content: personalizedContent,
+          subject: personalizedSubject,
           status: "pending",
           org_id: orgId,
         })
@@ -261,107 +292,35 @@ serve(async (req) => {
       }
 
       try {
-        // ── Pre-debit wallet (atomic base + GST) before sending ──
-        const gstAmount = Math.round(ratePerMsg * GST_RATE * 100) / 100;
-        const categoryMap: Record<string, string> = {
-          marketing: "marketing_message",
-          utility: "utility_message",
-          authentication: "auth_message",
+        // Send via Resend API
+        const resendPayload: Record<string, unknown> = {
+          from: fromHeader,
+          to: [contact.email],
+          subject: personalizedSubject,
+          html: finalHtml,
+          reply_to: replyTo,
         };
 
-        const { data: debitResult } = await supabase.rpc("debit_wallet_with_gst", {
-          _org_id: orgId,
-          _base_amount: ratePerMsg,
-          _gst_amount: gstAmount,
-          _category: categoryMap[messageCategory] || "marketing_message",
-          _description: `${messageCategory} message to ${contact.phone_number}`,
-          _reference_id: campaign_id,
-        });
-
-        if (debitResult === -1) {
-          // Insufficient balance — mark message failed, stop campaign
-          await supabase.from("messages").update({ status: "failed", error_message: "Insufficient balance" }).eq("id", msgRecord.id);
-          batchFailed++;
-          // Finalize campaign as we can't send more
-          const { count: totalSent } = await supabase.from("messages").select("id", { count: "exact", head: true }).eq("campaign_id", campaign_id).eq("status", "sent");
-          const finalStatus = (totalSent ?? 0) === 0 ? "failed" : "completed";
-          await supabase.rpc("transition_campaign_status", { _campaign_id: campaign_id, _from_status: "running", _to_status: finalStatus });
-          return new Response(JSON.stringify({ success: true, batch_sent: batchSent, batch_failed: batchFailed, stopped: "insufficient_balance" }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        // Build template components for WhatsApp API
-        const components: Record<string, unknown>[] = [];
-
-        if (headerMediaType && campaign.media_url) {
-          const headerParam: Record<string, unknown> = { type: headerMediaType };
-          headerParam[headerMediaType] = { link: campaign.media_url };
-          components.push({ type: "header", parameters: [headerParam] });
-        }
-
-        if (varNums.length > 0 && mapping) {
-          const bodyParams = varNums.map((num) => ({
-            type: "text",
-            text: resolveField(mapping[num] || ""),
-          }));
-          components.push({ type: "body", parameters: bodyParams });
-        }
-
-        // Add button parameters for dynamic URL buttons
-        const tplButtons = (tpl?.buttons as any[]) || [];
-        tplButtons
-          .filter((b: any) => b.type === "URL" && b.url?.includes("{{"))
-          .forEach((btn: any, btnIndex: number) => {
-            const urlVarMatch = btn.url.match(/\{\{(\d+)\}\}/);
-            if (urlVarMatch && mapping) {
-              components.push({
-                type: "button",
-                sub_type: "url",
-                index: String(btnIndex),
-                parameters: [{ type: "text", text: resolveField(mapping[urlVarMatch[1]] || "") }],
-              });
-            }
-          });
-
-        const content: Record<string, unknown> = {
-          type: "template",
-          template: {
-            name: templateName,
-            language: { code: templateLanguage, policy: "deterministic" },
-            ...(components.length > 0 ? { components } : {}),
-          },
-        };
-
-        const payload = {
-          whatsapp: {
-            messages: [{
-              from: creds.senderNumber,
-              to: contact.phone_number,
-              content,
-            }],
-          },
-        };
-
-        const exotelResponse = await fetch(exotelUrl, {
+        const resendResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+          },
+          body: JSON.stringify(resendPayload),
         });
 
-        const result = await exotelResponse.json();
-        const msgData = result?.response?.whatsapp?.messages?.[0];
+        const result = await resendResponse.json();
 
-        if (exotelResponse.ok && msgData?.status === "success") {
+        if (resendResponse.ok && result.id) {
           await supabase
             .from("messages")
             .update({
               status: "sent",
-              exotel_message_id: msgData?.data?.sid || null,
+              resend_message_id: result.id,
               sent_at: new Date().toISOString(),
             })
             .eq("id", msgRecord.id);
-
           batchSent++;
         } else {
           await supabase
@@ -371,25 +330,9 @@ serve(async (req) => {
               error_message: JSON.stringify(result).slice(0, 500),
             })
             .eq("id", msgRecord.id);
-          // Refund pre-debited amount on send failure
-          await supabase.rpc("credit_wallet", {
-            _org_id: orgId,
-            _amount: ratePerMsg + Math.round(ratePerMsg * GST_RATE * 100) / 100,
-            _category: "refund",
-            _description: `Refund: failed send to ${contact.phone_number}`,
-            _reference_id: campaign_id,
-          });
           batchFailed++;
         }
       } catch (err) {
-        // Refund pre-debited amount on exception
-        await supabase.rpc("credit_wallet", {
-          _org_id: orgId,
-          _amount: ratePerMsg + Math.round(ratePerMsg * GST_RATE * 100) / 100,
-          _category: "refund",
-          _description: `Refund: error sending to ${contact.phone_number}`,
-          _reference_id: campaign_id,
-        });
         await supabase
           .from("messages")
           .update({
@@ -401,12 +344,11 @@ serve(async (req) => {
       }
     }
 
-    // ── Self-chain: if we got a full batch, there may be more contacts ──
+    // ── Self-chain for remaining contacts ──
     if (contacts.length === BATCH_SIZE) {
       const nextOffset = offset + BATCH_SIZE;
       console.log(`Batch done (sent=${batchSent}, failed=${batchFailed}). Chaining to offset ${nextOffset}`);
 
-      // Chain to next batch — on failure, mark campaign as failed so it doesn't stay stuck
       fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
         method: "POST",
         headers: {
@@ -419,7 +361,6 @@ serve(async (req) => {
         await supabase.rpc("transition_campaign_status", { _campaign_id: campaign_id, _from_status: "running", _to_status: "failed" });
       });
     } else {
-      // This was the last batch — finalize campaign
       console.log(`Final batch done (sent=${batchSent}, failed=${batchFailed}). Finalizing campaign.`);
 
       const { count: totalSent } = await supabase

@@ -14,7 +14,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { decryptContacts, decryptNestedContacts } from "@/lib/decryptPii";
 
 function stripContentMarkers(text: string): string {
-  return text.replace(/^\[(Image|Video|Document) Header\]\n?/, "").trim();
+  return text.trim();
 }
 
 export default function CampaignDetail() {
@@ -25,7 +25,7 @@ export default function CampaignDetail() {
   const [allContacts, setAllContacts] = useState<Tables<"contacts">[]>([]);
   const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [messages, setMessages] = useState<(Tables<"messages"> & { contacts: { name: string | null; phone_number: string } | null })[]>([]);
+  const [messages, setMessages] = useState<(Tables<"messages"> & { contacts: { name: string | null; email: string } | null })[]>([]);
   const [msgCounts, setMsgCounts] = useState<{ sent: number; failed: number; pending: number }>({ sent: 0, failed: 0, pending: 0 });
   const [stopping, setStopping] = useState(false);
 
@@ -35,7 +35,7 @@ export default function CampaignDetail() {
       supabase.from("campaigns").select("*").eq("id", id).eq("org_id", currentOrg.id).maybeSingle(),
       supabase.from("contacts").select("*").eq("org_id", currentOrg.id),
       supabase.from("campaign_contacts").select("contact_id").eq("campaign_id", id),
-      supabase.from("messages").select("*, contacts(name, phone_number)").eq("campaign_id", id).eq("org_id", currentOrg.id).order("created_at", { ascending: false }).limit(200),
+      supabase.from("messages").select("*, contacts(name, email)").eq("campaign_id", id).eq("org_id", currentOrg.id).order("created_at", { ascending: false }).limit(200),
     ]);
     setCampaign(campRes.data);
     const rawContacts = contactsRes.data ?? [];
@@ -195,8 +195,8 @@ export default function CampaignDetail() {
                 {allContacts.map((c) => (
                   <label key={c.id} className="flex cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-2 hover:bg-accent">
                     <Checkbox checked={selectedIds.has(c.id)} onCheckedChange={() => toggleContact(c.id)} />
-                    <span className="text-sm font-medium">{c.name || c.phone_number}</span>
-                    <span className="text-xs text-muted-foreground">{c.phone_number}</span>
+                    <span className="text-sm font-medium">{c.name || c.email}</span>
+                    <span className="text-xs text-muted-foreground">{c.email}</span>
                   </label>
                 ))}
               </div>
@@ -215,7 +215,7 @@ export default function CampaignDetail() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Contact</TableHead>
-                  <TableHead>Phone</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Sent At</TableHead>
                 </TableRow>
@@ -224,7 +224,7 @@ export default function CampaignDetail() {
                 {messages.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell>{m.contacts?.name || "—"}</TableCell>
-                    <TableCell>{m.contacts?.phone_number}</TableCell>
+                    <TableCell>{m.contacts?.email}</TableCell>
                     <TableCell><Badge variant="outline">{m.status}</Badge></TableCell>
                     <TableCell className="text-muted-foreground">{m.sent_at ? new Date(m.sent_at).toLocaleString() : "—"}</TableCell>
                   </TableRow>

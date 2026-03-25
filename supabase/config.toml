@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.dpdp-manage]
 verify_jwt = false
+
+[functions.manage-domains]
+verify_jwt = false
