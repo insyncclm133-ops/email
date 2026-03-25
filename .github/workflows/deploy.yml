@@ -27,6 +27,26 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      - name: Set Supabase secrets for edge functions
+        run: |
+          supabase secrets set \
+            SITE_URL=${{ secrets.SITE_URL }} \
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }} \
+            RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }} \
+            RAZORPAY_KEY_SECRET=${{ secrets.RAZORPAY_KEY_SECRET }} \
+            ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }} \
+            --project-ref ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Configure Supabase Auth URLs
+        run: |
+          curl -s -X PATCH \
+            "https://api.supabase.com/v1/projects/${{ secrets.VITE_SUPABASE_PROJECT_ID }}/config/auth" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"SITE_URL":"${{ secrets.SITE_URL }}","URI_ALLOW_LIST":"${{ secrets.SITE_URL }}/**"}'
+
   build-and-deploy:
     needs: deploy-supabase
     runs-on: ubuntu-latest
