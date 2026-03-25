@@ -137,14 +137,37 @@ export default function Contacts() {
     fetchContacts();
   };
 
+  /** Parse a CSV line respecting quoted fields */
+  const parseCsvLine = (line: string): string[] => {
+    const cols: string[] = [];
+    let cur = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { cur += ch; }
+      } else {
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === ",") { cols.push(cur.trim()); cur = ""; }
+        else { cur += ch; }
+      }
+    }
+    cols.push(cur.trim());
+    return cols;
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user || !currentOrg) return;
 
     if (file.name.endsWith(".csv")) {
       const text = await file.text();
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+      // Strip BOM if present
+      const clean = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+      const lines = clean.split(/\r?\n/).filter(Boolean);
+      const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
       const emailIdx = headers.findIndex((h) => h.includes("email"));
       const nameIdx = headers.findIndex((h) => h.includes("name"));
       const phoneIdx = headers.findIndex((h) => h.includes("phone") || h.includes("mobile") || h.includes("number"));
@@ -155,7 +178,7 @@ export default function Contacts() {
       }
 
       const rows = lines.slice(1).map((line) => {
-        const cols = line.split(",").map((c) => c.trim());
+        const cols = parseCsvLine(line);
         const customFields: Record<string, string> = {};
         headers.forEach((h, i) => {
           if (i !== emailIdx && i !== nameIdx && i !== phoneIdx && cols[i]) {
@@ -176,11 +199,14 @@ export default function Contacts() {
       }).filter((r) => r.email);
 
       if (rows.length > 0) {
-        const { error } = await supabase.from("contacts").insert(rows);
+        const { error, data } = await supabase
+          .from("contacts")
+          .upsert(rows, { onConflict: "email,org_id", ignoreDuplicates: false })
+          .select("id");
         if (error) {
           toast({ variant: "destructive", title: "Import error", description: error.message });
         } else {
-          toast({ title: `${rows.length} contacts imported` });
+          toast({ title: `${data?.length ?? rows.length} contacts imported` });
           fetchContacts();
         }
       }

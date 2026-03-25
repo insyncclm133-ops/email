@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.verify-otp]
 verify_jwt = false
+
+[functions.unsubscribe]
+verify_jwt = false
+
+[functions.handle-resend-webhook]
+verify_jwt = false

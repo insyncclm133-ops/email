@@ -44,7 +44,7 @@ serve(async (req) => {
       });
     }
 
-    // Check caller is admin of this org (or super_admin)
+    // Check caller is admin of this org (or platform_admin)
     const { data: callerMembership } = await supabase
       .from("org_memberships")
       .select("role")
@@ -52,9 +52,9 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const { data: isSuperAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "super_admin" });
+    const { data: isPlatformAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "platform_admin" });
 
-    if (!isSuperAdmin && callerMembership?.role !== "admin") {
+    if (!isPlatformAdmin && callerMembership?.role !== "admin") {
       return new Response(JSON.stringify({ error: "Forbidden: org admin role required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

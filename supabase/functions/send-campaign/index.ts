@@ -272,11 +272,23 @@ serve(async (req) => {
         }
       }
 
+      // Build unsubscribe URL
+      const siteUrl = Deno.env.get("SITE_URL") || "https://email.in-sync.co.in";
+      const unsubToken = btoa(JSON.stringify({ org_id: orgId, email: contact.email }));
+      const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe?token=${encodeURIComponent(unsubToken)}`;
+
       // Build email body — use HTML template if available, otherwise wrap plain text
-      const finalHtml = personalizedHtml || `
+      const unsubscribeFooter = `
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e5e5; text-align: center;">
+          <p style="margin: 0; font-size: 12px; color: #999;">
+            <a href="${unsubscribeUrl}" style="color: #999; text-decoration: underline;">Unsubscribe</a> from these emails.
+          </p>
+        </div>`;
+      const bodyHtml = personalizedHtml || `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           ${personalizedContent.split('\n').map((line: string) => `<p style="margin: 0 0 12px; line-height: 1.6; color: #333;">${line}</p>`).join('')}
         </div>`;
+      const finalHtml = bodyHtml + unsubscribeFooter;
 
       // Create message record
       const { data: msgRecord, error: msgInsertErr } = await supabase
@@ -306,6 +318,10 @@ serve(async (req) => {
           subject: personalizedSubject,
           html: finalHtml,
           reply_to: replyTo,
+          headers: {
+            "List-Unsubscribe": `<${unsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
         };
 
         const resendResponse = await fetch("https://api.resend.com/emails", {

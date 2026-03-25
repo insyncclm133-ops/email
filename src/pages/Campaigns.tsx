@@ -57,12 +57,45 @@ function resolveMessage(text: string, mapping: Record<string, string>, row: CsvR
   return resolved;
 }
 
+/** Parse a single CSV line respecting quoted fields (e.g. "Doe, John") */
+function parseCsvLine(line: string): string[] {
+  const cols: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++; // skip escaped quote
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        cur += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        cols.push(cur.trim());
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+  }
+  cols.push(cur.trim());
+  return cols;
+}
+
 function parseCsv(text: string): { headers: string[]; rows: CsvRow[] } {
-  const lines = text.split(/\r?\n/).filter(Boolean);
+  // Strip BOM if present
+  const clean = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+  const lines = clean.split(/\r?\n/).filter(Boolean);
   if (lines.length === 0) return { headers: [], rows: [] };
-  const headers = lines[0].split(",").map((h) => h.trim());
+  const headers = parseCsvLine(lines[0]);
   const rows = lines.slice(1).map((line) => {
-    const cols = line.split(",").map((c) => c.trim());
+    const cols = parseCsvLine(line);
     const row: CsvRow = {};
     headers.forEach((h, i) => {
       row[h] = cols[i] || "";
@@ -368,17 +401,28 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
 
   const downloadCsvTemplate = () => {
     if (!selectedTemplate) return;
-    const vars = templateVars.map((v) => `variable_${v.replace(/\D/g, "")}`);
-    const cols = ["email", "name", ...vars];
-    const header = cols.join(",");
-    const row1 = ["john@example.com", "John", ...vars.map((_, i) => `sample_value_${i + 1}`)].join(",");
-    const row2 = ["jane@example.com", "Jane", ...vars.map((_, i) => `sample_value_${i + 1}`)].join(",");
-    const csv = [header, row1, row2].join("\n");
+    // Column 1 is always email. Remaining columns: name + one per template variable.
+    const varCols = templateVars.map((v) => {
+      const num = v.replace(/\D/g, "");
+      return num === "1" ? "name" : `variable_${num}`;
+    });
+    // Deduplicate — if {{1}} maps to "name", don't add "name" twice
+    const hasName = varCols.includes("name");
+    const cols = ["email", ...(hasName ? [] : ["name"]), ...varCols];
+    const uniqueCols = [...new Set(cols)];
+    const header = uniqueCols.join(",");
+    const sampleRow = (email: string, name: string) =>
+      uniqueCols.map((col) => {
+        if (col === "email") return email;
+        if (col === "name") return name;
+        return `sample_${col}`;
+      }).join(",");
+    const csv = [header, sampleRow("john@example.com", "John"), sampleRow("jane@example.com", "Jane")].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "campaign_template.csv";
+    a.download = "campaign_contacts.csv";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -427,7 +471,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
         return {
           user_id: user.id,
           org_id: currentOrg.id,
-          phone_number: email, // placeholder for NOT NULL constraint; unique per org via onConflict
           email,
           name: nameCol ? row[nameCol] || null : null,
           source: "campaign_csv",
@@ -449,7 +492,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
           const batch = chunk.slice(i, i + UPSERT_BATCH);
           const { data, error } = await supabase
             .from("contacts")
-            .upsert(batch, { onConflict: "phone_number,org_id", ignoreDuplicates: false })
+            .upsert(batch, { onConflict: "email,org_id", ignoreDuplicates: false })
             .select("id, phone_number");
 
           if (error) {
@@ -457,7 +500,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
             for (const record of batch) {
               const { data: single, error: singleErr } = await supabase
                 .from("contacts")
-                .upsert(record, { onConflict: "phone_number,org_id", ignoreDuplicates: false })
+                .upsert(record, { onConflict: "email,org_id", ignoreDuplicates: false })
                 .select("id, phone_number")
                 .single();
               if (singleErr) {

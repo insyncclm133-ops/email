@@ -105,9 +105,9 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      const { data: isSuperAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "super_admin" });
+      const { data: isPlatformAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "platform_admin" });
 
-      if (!isSuperAdmin && membership?.role !== "admin") {
+      if (!isPlatformAdmin && membership?.role !== "admin") {
         return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -157,9 +157,9 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      const { data: isSuperAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "super_admin" });
+      const { data: isPlatformAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "platform_admin" });
 
-      if (!isSuperAdmin && membership?.role !== "admin") {
+      if (!isPlatformAdmin && membership?.role !== "admin") {
         return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -234,6 +234,51 @@ serve(async (req) => {
         });
       }
 
+      // Seed default starter templates (best-effort — don't fail onboarding if this errors)
+      try {
+        const starterTemplates = [
+          {
+            user_id: user.id,
+            org_id,
+            name: "Welcome Email",
+            subject: "Welcome to {{1}}, {{2}}!",
+            content: "Hi {{2}},\n\nWelcome aboard! We're thrilled to have you join {{1}}.\n\nHere's what you can do next:\n- Explore our features\n- Set up your profile\n- Connect with our community\n\nIf you have any questions, just reply to this email.\n\nCheers,\nThe {{1}} Team",
+            html_content: null,
+            preview_text: "Welcome aboard — here's how to get started",
+            status: "approved",
+            category: "marketing",
+            language: "en",
+          },
+          {
+            user_id: user.id,
+            org_id,
+            name: "Monthly Newsletter",
+            subject: "{{1}} — Your Monthly Update",
+            content: "Hi {{2}},\n\nHere's what's new this month:\n\n{{3}}\n\nThanks for being part of our community!\n\nBest,\nThe {{1}} Team",
+            html_content: null,
+            preview_text: "This month's highlights and updates",
+            status: "approved",
+            category: "marketing",
+            language: "en",
+          },
+          {
+            user_id: user.id,
+            org_id,
+            name: "Promotional Offer",
+            subject: "Special offer just for you, {{2}}!",
+            content: "Hi {{2}},\n\n{{1}}\n\nThis offer is available for a limited time. Don't miss out!\n\nBest regards,\nThe Team",
+            html_content: null,
+            preview_text: "A special offer you won't want to miss",
+            status: "approved",
+            category: "marketing",
+            language: "en",
+          },
+        ];
+        await supabase.from("templates").insert(starterTemplates);
+      } catch (seedErr) {
+        console.error("Failed to seed starter templates:", seedErr);
+      }
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -249,9 +294,9 @@ serve(async (req) => {
         });
       }
 
-      // Only allow specific users to delete organizations
-      const allowedEmails = ["amina@in-sync.co.in", "a@in-sync.co.in"];
-      if (!user.email || !allowedEmails.includes(user.email.toLowerCase())) {
+      // Only platform_admin can delete organizations
+      const { data: canDelete } = await supabase.rpc("has_role", { _user_id: user.id, _role: "platform_admin" });
+      if (!canDelete) {
         return new Response(JSON.stringify({ error: "You do not have permission to delete organizations" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

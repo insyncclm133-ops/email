@@ -4,11 +4,25 @@ export interface EmailPayload {
   to: string;
   subject: string;
   html: string;
+  from?: string;
+  reply_to?: string;
+  headers?: Record<string, string>;
 }
+
+const DEFAULT_FROM = "In-Sync <noreply@in-sync.co.in>";
 
 export async function sendEmail(payload: EmailPayload): Promise<{ id: string }> {
   const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
   if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY is not configured");
+
+  const body: Record<string, unknown> = {
+    from: payload.from || DEFAULT_FROM,
+    to: [payload.to],
+    subject: payload.subject,
+    html: payload.html,
+  };
+  if (payload.reply_to) body.reply_to = payload.reply_to;
+  if (payload.headers) body.headers = payload.headers;
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -16,12 +30,7 @@ export async function sendEmail(payload: EmailPayload): Promise<{ id: string }> 
       "Content-Type": "application/json",
       Authorization: `Bearer ${RESEND_API_KEY}`,
     },
-    body: JSON.stringify({
-      from: "In-Sync <noreply@in-sync.co.in>",
-      to: [payload.to],
-      subject: payload.subject,
-      html: payload.html,
-    }),
+    body: JSON.stringify(body),
   });
 
   const data = await res.json();
