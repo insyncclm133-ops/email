@@ -245,33 +245,73 @@ serve(async (req) => {
     if (action === "get_pricing") {
       return new Response(JSON.stringify({
         success: true,
-        pricing: {
-          marketing: RATES.marketing,
-          transactional: RATES.transactional,
-          platform_fee: PLATFORM_FEE,
-          gst_rate: GST_RATE,
+        plans: {
+          starter: { name: "Starter", price_quarterly: 299700, emails: 10000, billing: "quarterly" },
+          growth: { name: "Growth", price_monthly: 249900, price_quarterly: 674700, emails: 50000, billing: "monthly_or_quarterly" },
+          scale: { name: "Scale", price_monthly: 599900, price_quarterly: 1619700, emails: 200000, billing: "monthly_or_quarterly" },
         },
+        gst_rate: GST_RATE,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ── CREATE RAZORPAY ORDER ──
-    if (action === "create_order") {
-      if (membership.role !== "admin") {
-        return new Response(JSON.stringify({ error: "Only admins can add funds" }), {
+    // ── GET SUBSCRIPTION STATUS ──
+    if (action === "get_subscription") {
+      const { data: orgData } = await supabase
+        .from("organizations")
+        .select("org_status, trial_started_at, trial_emails_used, subscription_plan, subscription_id, subscription_status, suspended_at")
+        .eq("id", org_id)
+        .single();
+
+      const { data: payments } = await supabase
+        .from("subscription_payments")
+        .select("*")
+        .eq("org_id", org_id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      return new Response(JSON.stringify({
+        success: true,
+        subscription: orgData,
+        payments: payments || [],
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── CREATE SUBSCRIPTION (Razorpay order for plan payment) ──
+    if (action === "create_subscription") {
+      if (!membership || membership.role !== "admin") {
+        return new Response(JSON.stringify({ error: "Only admins can subscribe" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const { amount } = body; // amount in Rs
-      if (!amount || amount < 100) {
-        return new Response(JSON.stringify({ error: "Minimum top-up amount is Rs 100" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const { plan, billing_cycle } = body; // plan: starter|growth|scale, billing_cycle: monthly|quarterly
+      const planPrices: Record<string, Record<string, number>> = {
+        starter: { quarterly: 299700 },
+        growth: { monthly: 249900, quarterly: 674700 },
+        scale: { monthly: 599900, quarterly: 1619700 },
+      };
+
+      if (!planPrices[plan]) {
+        return new Response(JSON.stringify({ error: "Invalid plan" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      const cycle = plan === "starter" ? "quarterly" : (billing_cycle || "monthly");
+      const amount = planPrices[plan][cycle];
+      if (!amount) {
+        return new Response(JSON.stringify({ error: "Invalid billing cycle for this plan" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Add GST
+      const amountWithGst = Math.round(amount * (1 + GST_RATE));
 
       const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID")!;
       const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET")!;
@@ -283,46 +323,41 @@ serve(async (req) => {
           Authorization: `Basic ${btoa(`${razorpayKeyId}:${razorpayKeySecret}`)}`,
         },
         body: JSON.stringify({
-          amount: Math.round(amount * 100), // paise
+          amount: amountWithGst,
           currency: "INR",
-          receipt: `wallet_${org_id}_${Date.now()}`,
-          notes: { org_id, user_id: user.id },
+          receipt: `sub_${plan}_${org_id}_${Date.now()}`,
+          notes: { org_id, user_id: user.id, plan, billing_cycle: cycle },
         }),
       });
 
       const orderData = await orderRes.json();
       if (!orderRes.ok) {
         return new Response(JSON.stringify({ error: "Failed to create order", details: orderData }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
       return new Response(JSON.stringify({
         success: true,
-        order: {
-          id: orderData.id,
-          amount: orderData.amount,
-          currency: orderData.currency,
-        },
+        order: { id: orderData.id, amount: orderData.amount, currency: orderData.currency },
         razorpay_key_id: razorpayKeyId,
+        plan,
+        billing_cycle: cycle,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ── VERIFY PAYMENT ──
-    if (action === "verify_payment") {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } = body;
+    // ── VERIFY SUBSCRIPTION PAYMENT ──
+    if (action === "verify_subscription") {
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan, billing_cycle } = body;
 
-      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !plan) {
         return new Response(JSON.stringify({ error: "Missing payment details" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Verify signature
       const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET")!;
       const expectedSignature = await generateHmac(
         `${razorpay_order_id}|${razorpay_payment_id}`,
@@ -331,32 +366,49 @@ serve(async (req) => {
 
       if (expectedSignature !== razorpay_signature) {
         return new Response(JSON.stringify({ error: "Payment verification failed" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Credit wallet
-      const amountRs = amount / 100; // convert paise to Rs
-      const { data: newBalance } = await supabase.rpc("credit_wallet", {
+      // Activate subscription
+      await supabase.rpc("activate_subscription", {
         _org_id: org_id,
-        _amount: amountRs,
-        _category: "topup",
-        _description: `Wallet top-up via Razorpay`,
-        _reference_id: razorpay_payment_id,
+        _plan: plan,
+        _subscription_id: razorpay_payment_id,
       });
 
-      return new Response(JSON.stringify({
-        success: true,
-        new_balance: newBalance,
-        amount_credited: amountRs,
-      }), {
+      // Calculate period
+      const now = new Date();
+      const periodMonths = billing_cycle === "quarterly" ? 3 : 1;
+      const periodEnd = new Date(now);
+      periodEnd.setMonth(periodEnd.getMonth() + periodMonths);
+
+      // Record payment
+      const planPrices: Record<string, Record<string, number>> = {
+        starter: { quarterly: 299700 },
+        growth: { monthly: 249900, quarterly: 674700 },
+        scale: { monthly: 599900, quarterly: 1619700 },
+      };
+      const cycle = plan === "starter" ? "quarterly" : (billing_cycle || "monthly");
+
+      await supabase.from("subscription_payments").insert({
+        org_id,
+        razorpay_subscription_id: razorpay_order_id,
+        razorpay_payment_id,
+        plan,
+        amount: planPrices[plan]?.[cycle] || 0,
+        status: "paid",
+        period_start: now.toISOString(),
+        period_end: periodEnd.toISOString(),
+      });
+
+      return new Response(JSON.stringify({ success: true, plan, status: "active" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify({
-      error: "Invalid action. Use: get_balance, get_transactions, get_usage, get_invoices, get_pricing, create_order, verify_payment",
+      error: "Invalid action. Use: get_balance, get_transactions, get_usage, get_invoices, get_pricing, get_subscription, create_subscription, verify_subscription",
     }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

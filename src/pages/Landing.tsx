@@ -467,7 +467,7 @@ export default function Landing() {
                 asChild
               >
                 <Link to="/login?signup=true">
-                  Start 14-Day Free Trial
+                  Start Free — 100 Emails Included
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
@@ -491,7 +491,7 @@ export default function Landing() {
               transition={{ duration: 0.5, delay: 0.6 }}
               className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground"
             >
-              {["DPDP-compliant", "SPF/DKIM/DMARC included", "14-day full-access trial", "No credit card required", "Setup in 2 minutes"].map(
+              {["DPDP-compliant", "SPF/DKIM/DMARC included", "100 free emails included", "No credit card required", "Setup in 2 minutes"].map(
                 (t) => (
                   <span key={t} className="flex items-center gap-1.5">
                     <CheckCircle className="h-3.5 w-3.5 text-primary" />
@@ -794,7 +794,7 @@ export default function Landing() {
               variants={fadeUp}
               className="mt-5 text-lg text-muted-foreground"
             >
-              Every plan starts with a 14-day full-access trial. No credit card required.
+              Every plan starts with 100 free emails. No credit card required.
             </motion.p>
           </AnimatedSection>
 
@@ -897,7 +897,7 @@ export default function Landing() {
                 </h2>
                 <p className="mx-auto mt-5 max-w-xl text-lg text-primary-foreground/80">
                   Register your organization in seconds and launch your first
-                  email campaign today. Start with a 14-day full-access trial — no credit card needed.
+                  email campaign today. Start free — send your first 100 emails on us.
                 </p>
                 <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                   <Button
@@ -907,7 +907,7 @@ export default function Landing() {
                     asChild
                   >
                     <Link to="/login?signup=true">
-                      Register Your Organization
+                      Start Free Trial
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </Button>

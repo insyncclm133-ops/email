@@ -54,6 +54,9 @@ serve(async (req) => {
           slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
           industry: industry || null,
           created_by: user.id,
+          org_status: "trial",
+          trial_started_at: new Date().toISOString(),
+          trial_emails_used: 0,
         })
         .select()
         .single();

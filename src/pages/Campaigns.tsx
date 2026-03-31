@@ -184,11 +184,17 @@ function CampaignList({ onNew }: { onNew: () => void }) {
       const { data: sendResult, error: invokeErr } = await supabase.functions.invoke("send-campaign", { body: { campaign_id: id } });
       if (invokeErr) {
         toast({ variant: "destructive", title: "Error", description: invokeErr.message || "Failed to start send" });
-      } else if (sendResult?.error === "Insufficient balance") {
+      } else if (sendResult?.error === "Trial email limit reached") {
         toast({
           variant: "destructive",
-          title: "Insufficient Balance",
-          description: `Required: ₹${sendResult.required}, Current: ₹${sendResult.current_balance}. Please add ₹${sendResult.shortfall} to your wallet.`,
+          title: "Trial Limit Reached",
+          description: `You've used ${sendResult.trial_emails_used} of 100 trial emails. Subscribe to a plan to keep sending.`,
+        });
+      } else if (sendResult?.error === "Organization is suspended") {
+        toast({
+          variant: "destructive",
+          title: "Organization Suspended",
+          description: "Your trial has expired. Subscribe to a plan to reactivate.",
         });
       }
       fetchCampaigns();
@@ -573,11 +579,17 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
           throw new Error(invokeErr.message || "Failed to start campaign send");
         }
 
-        if (sendResult?.error === "Insufficient balance") {
+        if (sendResult?.error === "Trial email limit reached") {
           toast({
             variant: "destructive",
-            title: "Insufficient Balance",
-            description: `Required: ₹${sendResult.required}, Current: ₹${sendResult.current_balance}. Please add ₹${sendResult.shortfall} to your wallet.`,
+            title: "Trial Limit Reached",
+            description: `You've used ${sendResult.trial_emails_used} of 100 trial emails. Subscribe to a plan to keep sending.`,
+          });
+        } else if (sendResult?.error === "Organization is suspended") {
+          toast({
+            variant: "destructive",
+            title: "Organization Suspended",
+            description: "Your trial has expired. Subscribe to a plan to reactivate.",
           });
         } else {
           const failNote = totalFailed > 0 ? ` (${totalFailed} records failed to upload)` : "";

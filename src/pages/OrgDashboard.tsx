@@ -567,6 +567,30 @@ export default function OrgDashboard() {
           </div>
         </div>
 
+        {/* Trial banner */}
+        {currentOrg?.org_status === "trial" && (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-primary">Free Trial</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {currentOrg.trial_emails_used} of 100 emails used
+                {currentOrg.trial_started_at && (
+                  <> — {Math.max(0, 14 - Math.floor((Date.now() - new Date(currentOrg.trial_started_at).getTime()) / (1000 * 60 * 60 * 24)))} days remaining</>
+                )}
+              </p>
+              <div className="mt-2 h-2 w-48 rounded-full bg-primary/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${Math.min(100, (currentOrg.trial_emails_used / 100) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <Button size="sm" onClick={() => navigate("/billing")} className="shrink-0">
+              Choose a Plan
+            </Button>
+          </div>
+        )}
+
         {/* Row 1: KPI Cards */}
         <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0 }}>
           {loading ? (

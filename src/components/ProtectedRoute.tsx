@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { Navigate } from "react-router-dom";
+import { SuspendedOrgGate } from "./SuspendedOrgGate";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -27,6 +28,11 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
   if (!currentOrg) return <Navigate to="/create-org" replace />;
 
   if (!currentOrg.onboarding_completed) return <Navigate to="/onboarding" replace />;
+
+  // Suspended orgs see payment prompt instead of dashboard
+  if (currentOrg.org_status === "suspended") {
+    return <SuspendedOrgGate org={currentOrg} />;
+  }
 
   // Check role requirement
   if (requireRole === "admin" && orgRole !== "admin" && !isPlatformAdmin) {

@@ -1499,7 +1499,6 @@ function SceneBilling() {
       setTimeout(() => setStep(1), 1500),
       setTimeout(() => setStep(2), 3500),
       setTimeout(() => setStep(3), 6000),
-      setTimeout(() => setStep(4), 8500),
     ];
     return () => timers.forEach(clearTimeout);
   }, []);
@@ -1511,99 +1510,73 @@ function SceneBilling() {
         <motion.div {...slideUp(0)} className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-foreground">Billing</h2>
-            <p className="text-xs text-muted-foreground">Transparent pricing, self-serve top-ups — no surprises</p>
+            <p className="text-xs text-muted-foreground">Simple subscription plans — no per-message charges</p>
           </div>
         </motion.div>
 
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          {/* Wallet balance */}
-          <motion.div {...slideUp(0.2)} className="col-span-1 rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/[0.02] p-5">
-            <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
-                <Wallet className="h-4 w-4 text-primary" />
+        {/* Current plan status */}
+        <motion.div {...slideUp(0.2)} className="mt-4 rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/[0.02] p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
+                <CheckCircle className="h-5 w-5 text-emerald-600" />
               </div>
-              <span className="text-xs font-semibold text-muted-foreground">Wallet Balance</span>
+              <div>
+                <p className="text-sm font-bold text-foreground">Growth Plan — Active</p>
+                <p className="text-[10px] text-muted-foreground">50,000 emails/month · Billed monthly</p>
+              </div>
             </div>
-            <AnimatedValue value="₹2,340.00" delay={0.5} />
-            <div className="mt-3 space-y-1 text-[10px] text-muted-foreground">
-              <div className="flex justify-between"><span>Total credited</span><span className="font-medium text-foreground">₹5,100.00</span></div>
-              <div className="flex justify-between"><span>Total spent</span><span className="font-medium text-foreground">₹2,760.00</span></div>
+            <div className="text-right">
+              <AnimatedValue value="₹2,499/mo" delay={0.5} />
+              <p className="text-[9px] text-muted-foreground">+ 18% GST</p>
             </div>
-            <AnimatePresence>
-              {step >= 1 && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  className="mt-4 flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">
-                  <CreditCard className="h-3.5 w-3.5" /> Add Funds via Razorpay
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+          </div>
+        </motion.div>
 
-          {/* Pricing table */}
-          <motion.div {...slideUp(0.35)} className="col-span-2 rounded-xl border border-border/60 bg-card p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-semibold text-foreground">Transparent Per-Message Pricing</span>
+        {/* Subscription plans */}
+        <div className="mt-4 grid grid-cols-3 gap-2.5">
+          {[
+            { name: "Starter", price: "₹999", period: "/user/mo", billing: "Quarterly", emails: "10K emails", color: "border-border/40" },
+            { name: "Growth", price: "₹2,499", period: "/mo", billing: "Monthly", emails: "50K emails", color: "border-primary ring-1 ring-primary/20", current: true },
+            { name: "Scale", price: "₹5,999", period: "/mo", billing: "Monthly", emails: "2L emails", color: "border-border/40" },
+          ].map((plan, i) => (
+            <motion.div key={plan.name}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0, transition: { delay: 0.5 + i * 0.15 } }}
+              className={`rounded-xl border bg-card p-3.5 ${plan.color}`}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-foreground">{plan.name}</p>
+                {plan.current && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[8px] font-semibold text-primary">Current</span>}
               </div>
-              <span className="text-[9px] text-muted-foreground">+ 18% GST</span>
-            </div>
-            <div className="space-y-2">
-              {[
-                { type: "Marketing", rate: "₹0.50", color: "bg-blue-500", desc: "Promotions, offers, announcements" },
-                { type: "Transactional", rate: "₹0.20", color: "bg-sky-500", desc: "Order updates, reminders, alerts" },
-              ].map((p, i) => (
-                <motion.div key={p.type}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0, transition: { delay: 0.5 + i * 0.15 } }}
-                  className="flex items-center gap-3 rounded-lg border border-border/40 bg-background p-3">
-                  <span className={`h-2.5 w-2.5 rounded-full ${p.color}`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">{p.type}</p>
-                    <p className="text-[9px] text-muted-foreground">{p.desc}</p>
-                  </div>
-                  <span className="text-lg font-bold text-foreground">{p.rate}<span className="text-[10px] font-normal text-muted-foreground">/msg</span></span>
-                </motion.div>
-              ))}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0, transition: { delay: 0.95 } }}
-                className="flex items-center gap-3 rounded-lg border border-border/40 bg-background p-3">
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Platform Fee</p>
-                  <p className="text-[9px] text-muted-foreground">Monthly access, analytics, AI features</p>
-                </div>
-                <span className="text-lg font-bold text-foreground">₹1,500<span className="text-[10px] font-normal text-muted-foreground">/mo</span></span>
-              </motion.div>
-            </div>
-          </motion.div>
+              <p className="text-lg font-bold text-foreground">{plan.price}<span className="text-[9px] font-normal text-muted-foreground">{plan.period}</span></p>
+              <p className="text-[9px] text-muted-foreground">{plan.billing} · {plan.emails}</p>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Recent transactions */}
+        {/* Payment history */}
         <AnimatePresence>
           {step >= 2 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               className="mt-4 rounded-xl border border-border/60 bg-card p-4">
-              <p className="mb-3 text-xs font-semibold text-foreground">Recent Transactions</p>
+              <p className="mb-3 text-xs font-semibold text-foreground">Payment History</p>
               <div className="space-y-1.5">
                 {[
-                  { desc: "Wallet top-up via Razorpay", amount: "+₹2,000.00", type: "credit", time: "2 hours ago" },
-                  { desc: "Campaign: March Promo — 847 msgs", amount: "-₹847.00", type: "debit", time: "3 hours ago" },
-                  { desc: "14-day trial credit", amount: "+₹100.00", type: "credit", time: "2 days ago" },
-                  { desc: "Campaign: Feb Newsletter — 523 msgs", amount: "-₹523.00", type: "debit", time: "5 days ago" },
+                  { desc: "Growth plan — March 2026", amount: "₹2,948.82", status: "paid", time: "1 Mar 2026" },
+                  { desc: "Growth plan — February 2026", amount: "₹2,948.82", status: "paid", time: "1 Feb 2026" },
+                  { desc: "Growth plan — January 2026", amount: "₹2,948.82", status: "paid", time: "1 Jan 2026" },
                 ].map((tx, i) => (
                   <motion.div key={i}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1, transition: { delay: i * 0.2 } }}
                     className="flex items-center justify-between rounded-lg bg-background px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <div className={`h-1.5 w-1.5 rounded-full ${tx.type === "credit" ? "bg-blue-500" : "bg-red-400"}`} />
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                       <span className="text-[11px] text-foreground">{tx.desc}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-[10px] text-muted-foreground">{tx.time}</span>
-                      <span className={`text-xs font-semibold ${tx.type === "credit" ? "text-blue-600" : "text-red-500"}`}>{tx.amount}</span>
+                      <span className="text-xs font-semibold text-foreground">{tx.amount}</span>
                     </div>
                   </motion.div>
                 ))}
@@ -1674,7 +1647,7 @@ function SceneOutro() {
       >
         <Button size="lg" className="text-base px-8 shadow-xl shadow-primary/25" asChild>
           <Link to="/login?signup=true">
-            Start 14-Day Free Trial <ArrowRight className="ml-2 h-4 w-4" />
+            Start Free — 100 Emails Included <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
       </motion.div>

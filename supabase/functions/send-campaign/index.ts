@@ -114,6 +114,46 @@ serve(async (req) => {
 
     const orgId = campaign.org_id;
 
+    // ── Check org status & trial limits ──
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("org_status, trial_emails_used")
+      .eq("id", orgId)
+      .single();
+
+    if (org?.org_status === "suspended") {
+      return new Response(JSON.stringify({ error: "Organization is suspended", suspended: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (org?.org_status === "trial") {
+      // Count total contacts in this campaign to check against remaining trial quota
+      const { count: totalContacts } = await supabase
+        .from("campaign_contacts")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", campaign_id);
+
+      const remaining = 100 - (org.trial_emails_used || 0);
+      if ((totalContacts ?? 0) > remaining) {
+        await supabase.rpc("transition_campaign_status", {
+          _campaign_id: campaign_id,
+          _from_status: "running",
+          _to_status: "failed",
+        });
+        return new Response(JSON.stringify({
+          error: "Trial email limit reached",
+          trial_emails_used: org.trial_emails_used,
+          limit: 100,
+          remaining,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ── Get org email config ──
     const { data: creds } = await supabase
       .from("org_credentials")
@@ -345,6 +385,11 @@ serve(async (req) => {
             })
             .eq("id", msgRecord.id);
           batchSent++;
+
+          // Increment trial email counter (no-op for active orgs)
+          if (org?.org_status === "trial") {
+            await supabase.rpc("increment_trial_emails", { _org_id: orgId, _count: 1 });
+          }
         } else {
           await supabase
             .from("messages")

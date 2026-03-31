@@ -490,7 +490,7 @@ export default function Login() {
                   className="mt-5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-center"
                 >
                   <p className="text-xs font-medium text-primary">
-                    14-day full-access trial — no credit card needed
+                    Start free — send your first 100 emails on us. No credit card required.
                   </p>
                 </motion.div>
               )}

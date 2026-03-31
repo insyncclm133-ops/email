@@ -11,6 +11,13 @@ export interface Organization {
   industry: string | null;
   onboarding_completed: boolean;
   created_at: string;
+  org_status: "trial" | "active" | "suspended";
+  trial_started_at: string | null;
+  trial_emails_used: number;
+  subscription_plan: string | null;
+  subscription_id: string | null;
+  subscription_status: string | null;
+  suspended_at: string | null;
 }
 
 export interface OrgMembership {
