@@ -357,7 +357,7 @@ export default function Automations() {
 
   const statusColor: Record<string, string> = {
     draft: "bg-muted text-muted-foreground",
-    active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    active: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
     paused: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
     completed: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
   };
@@ -709,7 +709,7 @@ export default function Automations() {
                       { label: "Pending", key: "pending", icon: Clock, color: "text-muted-foreground" },
                       { label: "In Progress", key: "in_progress", icon: Loader2, color: "text-blue-500" },
                       { label: "Waiting", key: "waiting", icon: Clock, color: "text-yellow-500" },
-                      { label: "Completed", key: "completed", icon: CheckCircle, color: "text-green-500" },
+                      { label: "Completed", key: "completed", icon: CheckCircle, color: "text-blue-500" },
                       { label: "Failed", key: "failed", icon: XCircle, color: "text-destructive" },
                     ].map(({ label, key, icon: Icon, color }) => (
                       <div

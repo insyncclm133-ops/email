@@ -114,7 +114,7 @@ function MockSidebar({ active }: { active: string }) {
       </div>
       <div className="border-b border-border/40 px-4 py-2">
         <div className="rounded-md bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-          Acme Corp
+          In-Sync Platform Demo
         </div>
       </div>
       <nav className="flex-1 space-y-0.5 px-3 py-3">
@@ -134,7 +134,7 @@ function MockSidebar({ active }: { active: string }) {
         })}
       </nav>
       <div className="border-t border-border/40 px-4 py-3">
-        <p className="truncate text-[10px] text-muted-foreground">admin@acmecorp.com</p>
+        <p className="truncate text-[10px] text-muted-foreground">demo@in-sync.co.in</p>
       </div>
     </motion.div>
   );
@@ -162,7 +162,7 @@ function KpiCard({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1, transition: { delay: delay + 0.8 } }}
-        className="mt-2 flex items-center gap-1 text-[10px] text-emerald-600"
+        className="mt-2 flex items-center gap-1 text-[10px] text-blue-600"
       >
         <TrendingUp className="h-3 w-3" /> {change}
       </motion.div>
@@ -199,7 +199,7 @@ function MiniBarChart() {
         <p className="text-xs font-semibold text-foreground">Campaign Performance</p>
         <div className="flex gap-3 text-[9px] text-muted-foreground">
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-500" /> Sent</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Delivered</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" /> Delivered</span>
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-500" /> Opened</span>
         </div>
       </div>
@@ -209,7 +209,7 @@ function MiniBarChart() {
             <div className="flex w-full items-end gap-px" style={{ height: 80 }}>
               {[
                 { val: d.sent, color: "bg-sky-500" },
-                { val: d.delivered, color: "bg-emerald-500" },
+                { val: d.delivered, color: "bg-blue-500" },
                 { val: d.read, color: "bg-violet-500" },
               ].map((bar, j) => (
                 <motion.div
@@ -378,7 +378,7 @@ function SceneDashboard() {
 
         <div className="mt-4 grid grid-cols-4 gap-3">
           <KpiCard label="Emails Sent MTD" value="2,847" change="+18% vs last month" color="from-sky-500 to-blue-600" icon={Send} delay={0.15} />
-          <KpiCard label="Delivery Rate" value="96.3%" change="+2.1% vs last month" color="from-emerald-500 to-green-600" icon={CheckCheck} delay={0.25} />
+          <KpiCard label="Delivery Rate" value="96.3%" change="+2.1% vs last month" color="from-blue-500 to-blue-600" icon={CheckCheck} delay={0.25} />
           <KpiCard label="Open Rate" value="42.8%" change="+5.4% vs last month" color="from-violet-500 to-purple-600" icon={Eye} delay={0.35} />
           <KpiCard label="Total Contacts" value="1,204" change="+86 this month" color="from-amber-500 to-orange-600" icon={Users} delay={0.45} />
         </div>
@@ -469,7 +469,7 @@ function SceneContacts() {
           </AnimatePresence>
           {step >= 4 && (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-              className="ml-auto flex items-center gap-1.5 text-[10px] font-medium text-emerald-600">
+              className="ml-auto flex items-center gap-1.5 text-[10px] font-medium text-blue-600">
               <CheckCircle className="h-3.5 w-3.5" /> Segment "VIP Customers" saved
             </motion.div>
           )}
@@ -576,7 +576,7 @@ function SceneCampaigns() {
                     className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
                     <FileText className="h-4 w-4 text-primary" />
                     <span className="text-sm font-medium text-foreground">promo_offer_march</span>
-                    <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-medium text-emerald-700">Marketing · ₹1.00/msg</span>
+                    <span className="ml-auto rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-medium text-blue-700">Marketing · ₹1.00/msg</span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -591,7 +591,7 @@ function SceneCampaigns() {
                   <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
                     <Upload className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-foreground">contacts_march.csv</span>
-                    <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-medium text-emerald-700">✓ 847 valid</span>
+                    <span className="ml-auto rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-medium text-blue-700">✓ 847 valid</span>
                     <span className="rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-medium text-red-700">⚠ 3 skipped</span>
                   </div>
                 </motion.div>
@@ -632,8 +632,8 @@ function SceneCampaigns() {
                         <span className="flex items-center gap-1 font-semibold text-foreground">
                           <IndianRupee className="h-3 w-3" /> Est. cost: ₹847.00
                         </span>
-                        <span className="text-muted-foreground">Wallet: <strong className="text-emerald-600">₹2,340</strong></span>
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-medium text-emerald-700">✓ Sufficient balance</span>
+                        <span className="text-muted-foreground">Wallet: <strong className="text-blue-600">₹2,340</strong></span>
+                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-medium text-blue-700">✓ Sufficient balance</span>
                       </div>
                     </div>
                     <motion.div
@@ -752,7 +752,7 @@ function SceneTemplates() {
                 <p className="text-[10px] font-medium text-foreground">{t.name}</p>
                 <div className="mt-0.5 flex items-center gap-1.5">
                   <span className={`rounded-full px-1.5 py-0.5 text-[7px] font-medium ${
-                    t.status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"
+                    t.status === "Active" ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"
                   }`}>{t.status}</span>
                   <span className="text-[7px] text-muted-foreground">{t.type}</span>
                 </div>
@@ -771,7 +771,7 @@ function SceneTemplates() {
             <div className="flex items-center gap-2">
               {step >= 5 && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="flex items-center gap-1.5 text-[10px] text-emerald-600">
+                  className="flex items-center gap-1.5 text-[10px] text-blue-600">
                   <CheckCircle className="h-3.5 w-3.5" /> Saved
                 </motion.div>
               )}
@@ -974,7 +974,7 @@ function SceneAutomations() {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-foreground">Welcome Drip Series</span>
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">Active</span>
+                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700">Active</span>
               </div>
               <p className="mt-0.5 text-[10px] text-muted-foreground">
                 327/547 contacts processed · 10/day limit · Created Mar 5
@@ -1002,7 +1002,7 @@ function SceneAutomations() {
                         { label: "Pending", value: "200", color: "text-muted-foreground" },
                         { label: "In Progress", value: "47", color: "text-blue-600" },
                         { label: "Waiting", value: "32", color: "text-amber-600" },
-                        { label: "Completed", value: "248", color: "text-emerald-600" },
+                        { label: "Completed", value: "248", color: "text-blue-600" },
                         { label: "Failed", value: "20", color: "text-red-500" },
                       ].map((stat, i) => (
                         <motion.div key={stat.label}
@@ -1165,7 +1165,7 @@ function SceneDevelopers() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-foreground">CRM Sync</span>
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">Active</span>
+                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700">Active</span>
                     </div>
                     <p className="mt-0.5 text-[10px] text-muted-foreground">https://crm.acmecorp.com/webhook</p>
                     <div className="mt-1.5 flex gap-1">
@@ -1195,12 +1195,12 @@ function SceneDevelopers() {
                           animate={{ opacity: 1, transition: { delay: i * 0.12 } }}
                           className="flex items-center gap-2 rounded-lg bg-background px-3 py-1.5 text-[10px]">
                           {d.success
-                            ? <CheckCircle className="h-3 w-3 text-emerald-500" />
+                            ? <CheckCircle className="h-3 w-3 text-blue-500" />
                             : <span className="flex h-3 w-3 items-center justify-center rounded-full bg-red-100 text-[7px] font-bold text-red-600">!</span>
                           }
                           <span className="font-medium text-foreground">{d.event}</span>
                           <span className={`rounded px-1.5 py-0.5 text-[8px] font-medium ${
-                            d.success ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                            d.success ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"
                           }`}>{d.status}</span>
                           <span className="ml-auto text-muted-foreground">{d.time}</span>
                         </motion.div>
@@ -1218,7 +1218,7 @@ function SceneDevelopers() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-foreground">Analytics Pipeline</span>
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">Active</span>
+                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700">Active</span>
                     </div>
                     <p className="mt-0.5 text-[10px] text-muted-foreground">https://analytics.acmecorp.com/ingest</p>
                     <div className="mt-1.5 flex gap-1">
@@ -1240,8 +1240,8 @@ function SceneDevelopers() {
               <AnimatePresence>
                 {step >= 4 && (
                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-3">
-                    <p className="mb-2 text-[10px] font-semibold text-emerald-700">
+                    className="rounded-xl border-2 border-blue-300 bg-blue-50 p-3">
+                    <p className="mb-2 text-[10px] font-semibold text-blue-700">
                       API Key Generated — copy it now, it won't be shown again!
                     </p>
                     <div className="flex items-center gap-2">
@@ -1312,7 +1312,7 @@ function SceneDevelopers() {
                       animate={{ opacity: 1, x: 0, transition: { delay: i * 0.08 } }}
                       className="flex items-center gap-2 rounded-lg bg-background px-3 py-1.5">
                       <span className={`rounded px-1.5 py-0.5 text-[8px] font-bold ${
-                        ep.method === "GET" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
+                        ep.method === "GET" ? "bg-blue-100 text-blue-700" : "bg-blue-100 text-blue-700"
                       }`}>{ep.method}</span>
                       <code className="text-[10px] font-medium text-foreground">{ep.path}</code>
                       <span className="ml-auto text-[9px] text-muted-foreground">{ep.desc}</span>
@@ -1350,8 +1350,8 @@ function SceneCompliance() {
       <div className="flex-1 overflow-hidden p-5">
         <motion.div {...slideUp(0)} className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100">
+              <ShieldCheck className="h-4 w-4 text-blue-600" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-foreground">DPDP Compliance</h2>
@@ -1359,7 +1359,7 @@ function SceneCompliance() {
             </div>
           </div>
           <motion.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
-            className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-semibold text-emerald-700">
+            className="rounded-full bg-blue-100 px-3 py-1 text-[10px] font-semibold text-blue-700">
             ✓ DPDP Enabled
           </motion.span>
         </motion.div>
@@ -1368,11 +1368,11 @@ function SceneCompliance() {
         <AnimatePresence>
           {step >= 1 && (
             <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
-              className="mt-4 rounded-xl border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-emerald-50/30 p-4">
+              className="mt-4 rounded-xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-blue-50/30 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
-                    <Lock className="h-5 w-5 text-emerald-600" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
+                    <Lock className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">AES-256 Encryption Active</p>
@@ -1380,7 +1380,7 @@ function SceneCompliance() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-emerald-600">100%</p>
+                  <p className="text-2xl font-bold text-blue-600">100%</p>
                   <p className="text-[9px] text-muted-foreground">Contacts Encrypted</p>
                 </div>
               </div>
@@ -1394,7 +1394,7 @@ function SceneCompliance() {
             <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
               className="mt-3 grid grid-cols-4 gap-3">
               {[
-                { label: "Encrypted Contacts", value: "1,204", color: "text-emerald-600", sub: "100% coverage" },
+                { label: "Encrypted Contacts", value: "1,204", color: "text-blue-600", sub: "100% coverage" },
                 { label: "Active Consents", value: "1,148", color: "text-blue-600", sub: "95.3% consent rate" },
                 { label: "Data Requests", value: "3", color: "text-amber-600", sub: "2 pending" },
                 { label: "PII Access Events", value: "847", color: "text-violet-600", sub: "All audited" },
@@ -1434,7 +1434,7 @@ function SceneCompliance() {
                         <p className="text-[8px] text-muted-foreground">{c.purpose}</p>
                       </div>
                       <span className={`rounded-full px-2 py-0.5 text-[8px] font-medium ${
-                        c.status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                        c.status === "Active" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"
                       }`}>{c.status}</span>
                     </motion.div>
                   ))}
@@ -1468,7 +1468,7 @@ function SceneCompliance() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`rounded-full px-2 py-0.5 text-[8px] font-medium ${
-                          r.status === "Completed" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                          r.status === "Completed" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"
                         }`}>{r.status}</span>
                         {r.status === "Pending" && step >= 5 && (
                           <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -1550,7 +1550,7 @@ function SceneBilling() {
             </div>
             <div className="space-y-2">
               {[
-                { type: "Marketing", rate: "₹0.50", color: "bg-emerald-500", desc: "Promotions, offers, announcements" },
+                { type: "Marketing", rate: "₹0.50", color: "bg-blue-500", desc: "Promotions, offers, announcements" },
                 { type: "Transactional", rate: "₹0.20", color: "bg-sky-500", desc: "Order updates, reminders, alerts" },
               ].map((p, i) => (
                 <motion.div key={p.type}
@@ -1590,7 +1590,7 @@ function SceneBilling() {
                 {[
                   { desc: "Wallet top-up via Razorpay", amount: "+₹2,000.00", type: "credit", time: "2 hours ago" },
                   { desc: "Campaign: March Promo — 847 msgs", amount: "-₹847.00", type: "debit", time: "3 hours ago" },
-                  { desc: "Welcome bonus — free test balance", amount: "+₹100.00", type: "credit", time: "2 days ago" },
+                  { desc: "14-day trial credit", amount: "+₹100.00", type: "credit", time: "2 days ago" },
                   { desc: "Campaign: Feb Newsletter — 523 msgs", amount: "-₹523.00", type: "debit", time: "5 days ago" },
                 ].map((tx, i) => (
                   <motion.div key={i}
@@ -1598,12 +1598,12 @@ function SceneBilling() {
                     animate={{ opacity: 1, transition: { delay: i * 0.2 } }}
                     className="flex items-center justify-between rounded-lg bg-background px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <div className={`h-1.5 w-1.5 rounded-full ${tx.type === "credit" ? "bg-emerald-500" : "bg-red-400"}`} />
+                      <div className={`h-1.5 w-1.5 rounded-full ${tx.type === "credit" ? "bg-blue-500" : "bg-red-400"}`} />
                       <span className="text-[11px] text-foreground">{tx.desc}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-[10px] text-muted-foreground">{tx.time}</span>
-                      <span className={`text-xs font-semibold ${tx.type === "credit" ? "text-emerald-600" : "text-red-500"}`}>{tx.amount}</span>
+                      <span className={`text-xs font-semibold ${tx.type === "credit" ? "text-blue-600" : "text-red-500"}`}>{tx.amount}</span>
                     </div>
                   </motion.div>
                 ))}
@@ -1674,7 +1674,7 @@ function SceneOutro() {
       >
         <Button size="lg" className="text-base px-8 shadow-xl shadow-primary/25" asChild>
           <Link to="/login?signup=true">
-            Start Free — ₹100 Balance <ArrowRight className="ml-2 h-4 w-4" />
+            Start 14-Day Free Trial <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
       </motion.div>

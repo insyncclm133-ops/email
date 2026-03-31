@@ -88,7 +88,7 @@ export default function Chatbots() {
 
   const statusColor: Record<string, string> = {
     draft: "bg-muted text-muted-foreground",
-    active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    active: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
     paused: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
   };
 

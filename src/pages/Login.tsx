@@ -482,7 +482,7 @@ export default function Login() {
                 )}
               </p>
 
-              {/* Free balance callout for sign up */}
+              {/* Trial callout for sign up */}
               {isSignUp && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -490,7 +490,7 @@ export default function Login() {
                   className="mt-5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-center"
                 >
                   <p className="text-xs font-medium text-primary">
-                    Start with a free Rs 100 balance — no credit card needed
+                    14-day full-access trial — no credit card needed
                   </p>
                 </motion.div>
               )}

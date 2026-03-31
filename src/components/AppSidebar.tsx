@@ -107,7 +107,7 @@ export function AppSidebar() {
       {/* Footer — always pinned at bottom */}
       <div className="shrink-0 border-t border-sidebar-border p-4">
         <p className="mb-2 truncate text-xs text-sidebar-foreground/60">
-          {user?.email}
+          {user?.user_metadata?.full_name || user?.email}
         </p>
         <Button
           variant="ghost"

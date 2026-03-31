@@ -374,12 +374,12 @@ export default function DpdpCompliance() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {status?.key_active ? (
-                  <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-5">
+                  <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Lock className="h-8 w-8 text-green-600" />
+                        <Lock className="h-8 w-8 text-blue-600" />
                         <div>
-                          <p className="font-semibold text-green-700">Encryption Key Active</p>
+                          <p className="font-semibold text-blue-700">Encryption Key Active</p>
                           <p className="text-sm text-muted-foreground">
                             Key hint: <code className="rounded bg-muted px-1.5 py-0.5">****{status.key_hint}</code>
                             {" "}&middot;{" "}
@@ -418,7 +418,7 @@ export default function DpdpCompliance() {
                 {/* Stats Grid */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <StatCard
-                    icon={<Lock className="h-5 w-5 text-green-600" />}
+                    icon={<Lock className="h-5 w-5 text-blue-600" />}
                     label="Encrypted Contacts"
                     value={status?.encrypted_contacts ?? 0}
                     subtitle={`${encryptionPct}% of total`}
@@ -695,7 +695,7 @@ export default function DpdpCompliance() {
                                 </Button>
                               )}
                               {r.status === "completed" && (
-                                <span className="flex items-center gap-1 text-xs text-green-600">
+                                <span className="flex items-center gap-1 text-xs text-blue-600">
                                   <CheckCircle2 className="h-3 w-3" /> Done
                                 </span>
                               )}
@@ -731,7 +731,7 @@ export default function DpdpCompliance() {
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : breaches.length === 0 ? (
                   <div className="py-8 text-center">
-                    <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-500" />
+                    <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-blue-500" />
                     <p className="text-muted-foreground">No breach notifications recorded.</p>
                   </div>
                 ) : (
@@ -845,7 +845,7 @@ export default function DpdpCompliance() {
               </div>
             )}
             {newKey.length >= 16 && (
-              <div className="flex items-center gap-2 text-sm text-green-600">
+              <div className="flex items-center gap-2 text-sm text-blue-600">
                 <CheckCircle2 className="h-4 w-4" />
                 Key length OK ({newKey.length} characters)
               </div>

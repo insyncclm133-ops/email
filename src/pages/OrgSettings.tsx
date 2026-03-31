@@ -238,7 +238,7 @@ export default function OrgSettings() {
 
   const statusIcon = (status: string) => {
     switch (status) {
-      case "verified": return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case "verified": return <CheckCircle2 className="h-4 w-4 text-blue-500" />;
       case "failed": return <XCircle className="h-4 w-4 text-red-500" />;
       default: return <Clock className="h-4 w-4 text-yellow-500" />;
     }
@@ -247,7 +247,7 @@ export default function OrgSettings() {
   const statusBadge = (status: string) => {
     switch (status) {
       case "verified":
-        return <Badge className="bg-green-500/10 text-green-700 border-green-500/20">Verified</Badge>;
+        return <Badge className="bg-blue-500/10 text-blue-700 border-blue-500/20">Verified</Badge>;
       case "failed":
         return <Badge variant="destructive">Failed</Badge>;
       default:
@@ -490,7 +490,7 @@ export default function OrgSettings() {
                               </td>
                               <td className="px-4 py-3">
                                 {rec.status === "verified" ? (
-                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  <CheckCircle2 className="h-4 w-4 text-blue-500" />
                                 ) : (
                                   <Clock className="h-4 w-4 text-yellow-500" />
                                 )}

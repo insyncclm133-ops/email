@@ -443,7 +443,7 @@ export default function OnboardingWizard() {
                         <Globe className="h-5 w-5 text-primary" />
                         <span className="font-semibold">{domainInput}</span>
                         {domainStatus === "verified" ? (
-                          <Badge className="bg-green-500/10 text-green-700 border-green-500/20">Verified</Badge>
+                          <Badge className="bg-blue-500/10 text-blue-700 border-blue-500/20">Verified</Badge>
                         ) : (
                           <Badge variant="secondary">Pending</Badge>
                         )}
@@ -455,11 +455,11 @@ export default function OnboardingWizard() {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200 }}
-                            className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10"
+                            className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10"
                           >
-                            <CheckCircle2 className="h-8 w-8 text-green-500" />
+                            <CheckCircle2 className="h-8 w-8 text-blue-500" />
                           </motion.div>
-                          <h4 className="font-semibold text-green-700 dark:text-green-400">Domain Verified!</h4>
+                          <h4 className="font-semibold text-blue-700 dark:text-blue-400">Domain Verified!</h4>
                           <p className="text-sm text-muted-foreground text-center">
                             You can now send emails from this domain.
                           </p>

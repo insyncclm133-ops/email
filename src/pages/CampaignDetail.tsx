@@ -149,7 +149,7 @@ export default function CampaignDetail() {
             <div className="flex gap-6 text-sm">
               <div>
                 <span className="text-muted-foreground">Sent:</span>{" "}
-                <span className="font-semibold text-green-600">{msgCounts.sent.toLocaleString()}</span>
+                <span className="font-semibold text-blue-600">{msgCounts.sent.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">Failed:</span>{" "}

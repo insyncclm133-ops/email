@@ -83,7 +83,7 @@ function EmailPreview({ form }: { form: BuilderForm }) {
         <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-2 border-b">
           <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
           <div className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
-          <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
+          <div className="h-2.5 w-2.5 rounded-full bg-blue-400" />
           <span className="ml-2 text-[10px] text-muted-foreground">Inbox</span>
         </div>
 

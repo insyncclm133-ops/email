@@ -333,7 +333,7 @@ export default function Developers() {
                   {deliveries.map((d) => (
                     <div key={d.id} className="flex items-center gap-3 rounded border border-border p-2 text-xs">
                       {d.success ? (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <CheckCircle className="h-4 w-4 text-blue-500" />
                       ) : (
                         <XCircle className="h-4 w-4 text-red-500" />
                       )}
@@ -407,9 +407,9 @@ export default function Developers() {
 
           {/* Show newly generated key */}
           {generatedKey && (
-            <Card className="border-green-500/50 bg-green-50 dark:bg-green-950/20">
+            <Card className="border-blue-500/50 bg-blue-50 dark:bg-blue-950/20">
               <CardContent className="py-4">
-                <p className="mb-2 text-sm font-semibold text-green-700 dark:text-green-400">
+                <p className="mb-2 text-sm font-semibold text-blue-700 dark:text-blue-400">
                   API Key Generated — copy it now, it won't be shown again!
                 </p>
                 <div className="flex items-center gap-2">

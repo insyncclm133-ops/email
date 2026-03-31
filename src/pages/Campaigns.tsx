@@ -694,7 +694,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                   <span className="text-sm">{csvFileName}</span>
                   <div className="ml-auto flex items-center gap-2">
                     <Badge variant="outline" className="gap-1">
-                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      <CheckCircle2 className="h-3 w-3 text-blue-600" />
                       {csvRows.length.toLocaleString()} valid
                     </Badge>
                     {csvErrors.length > 0 && (

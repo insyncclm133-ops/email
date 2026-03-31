@@ -34,7 +34,7 @@ import {
   Activity,
 } from "lucide-react";
 
-const COLORS = ["#10b981", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ef4444"];
+const COLORS = ["#3b82f6", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ef4444"];
 
 interface DailyData {
   date: string;
@@ -215,7 +215,7 @@ export default function Analytics() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {[
                 { label: "Sent", value: metrics.totalSent, icon: Mail, color: "text-blue-600" },
-                { label: "Delivered", value: `${metrics.deliveryRate}%`, icon: Target, color: "text-green-600" },
+                { label: "Delivered", value: `${metrics.deliveryRate}%`, icon: Target, color: "text-blue-600" },
                 { label: "Opened", value: `${metrics.openRate}%`, icon: TrendingUp, color: "text-purple-600" },
                 { label: "Click Rate", value: `${metrics.clickRate}%`, icon: Activity, color: "text-amber-600" },
                 { label: "Bounced", value: metrics.totalFailed, icon: TrendingDown, color: "text-red-600" },
@@ -248,7 +248,7 @@ export default function Analytics() {
                     <Tooltip />
                     <Legend />
                     <Area type="monotone" dataKey="sent" name="Sent" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.1} />
-                    <Area type="monotone" dataKey="delivered" name="Delivered" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
+                    <Area type="monotone" dataKey="delivered" name="Delivered" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} />
                     <Area type="monotone" dataKey="opened" name="Opened" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} />
                     <Area type="monotone" dataKey="clicked" name="Clicked" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} />
                   </AreaChart>
@@ -278,7 +278,7 @@ export default function Analytics() {
                       <YAxis dataKey="stage" type="category" width={80} />
                       <Tooltip />
                       <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                        {["#0ea5e9", "#10b981", "#8b5cf6", "#f59e0b"].map((c, i) => (
+                        {["#0ea5e9", "#3b82f6", "#8b5cf6", "#f59e0b"].map((c, i) => (
                           <Cell key={i} fill={c} />
                         ))}
                       </Bar>
@@ -297,7 +297,7 @@ export default function Analytics() {
                   <p className="text-sm text-muted-foreground">emails/day</p>
                   <div className="mt-4 grid grid-cols-2 gap-4 text-center text-sm">
                     <div>
-                      <p className="text-2xl font-semibold text-green-600">{metrics.totalOpened.toLocaleString()}</p>
+                      <p className="text-2xl font-semibold text-blue-600">{metrics.totalOpened.toLocaleString()}</p>
                       <p className="text-xs text-muted-foreground">Opened</p>
                     </div>
                     <div>
@@ -315,7 +315,7 @@ export default function Analytics() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 { label: "Active Campaigns", value: campaignMetrics.activeCount, color: "text-blue-600" },
-                { label: "Completed", value: campaignMetrics.completedCount, color: "text-green-600" },
+                { label: "Completed", value: campaignMetrics.completedCount, color: "text-blue-600" },
                 { label: "Drafts", value: campaignMetrics.draftCount, color: "text-amber-600" },
                 { label: "New Campaigns", value: metrics.newCampaigns, color: "text-purple-600" },
               ].map(({ label, value, color }) => (
@@ -340,7 +340,7 @@ export default function Analytics() {
                     <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="opened" name="Opened" stroke="#10b981" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="opened" name="Opened" stroke="#3b82f6" strokeWidth={2} dot={false} />
                     <Line type="monotone" dataKey="clicked" name="Clicked" stroke="#0ea5e9" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -354,7 +354,7 @@ export default function Analytics() {
               <Card>
                 <CardContent className="py-4">
                   <p className="text-xs text-muted-foreground">New Contacts ({period}d)</p>
-                  <p className="text-3xl font-bold text-green-600">{metrics.newContacts.toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-blue-600">{metrics.newContacts.toLocaleString()}</p>
                 </CardContent>
               </Card>
               <Card>

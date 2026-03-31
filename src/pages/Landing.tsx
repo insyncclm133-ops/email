@@ -27,6 +27,22 @@ import {
 
 const features = [
   {
+    icon: ShieldCheck,
+    title: "DPDP Compliance Built-In",
+    description:
+      "India's first email platform with native DPDP Act compliance — one-click unsubscribe, consent tracking, and data retention controls out of the box.",
+    gradient: "from-emerald-500/20 to-teal-500/20",
+    iconColor: "text-emerald-500",
+  },
+  {
+    icon: Shield,
+    title: "Deliverability Infrastructure",
+    description:
+      "Authenticated sending with SPF, DKIM, and DMARC — your emails land in inboxes, not spam folders. Domain verification and reputation monitoring included.",
+    gradient: "from-amber-500/20 to-orange-500/20",
+    iconColor: "text-amber-500",
+  },
+  {
     icon: FileCode,
     title: "HTML Email Templates",
     description:
@@ -51,28 +67,12 @@ const features = [
     iconColor: "text-violet-500",
   },
   {
-    icon: Shield,
-    title: "Domain Verification",
-    description:
-      "Set up SPF, DKIM, and DMARC records to authenticate your sending domain and maximize inbox delivery.",
-    gradient: "from-amber-500/20 to-orange-500/20",
-    iconColor: "text-amber-500",
-  },
-  {
     icon: Zap,
     title: "Enterprise Security",
     description:
       "Role-based access, encrypted credentials, and row-level data isolation keep your data safe.",
     gradient: "from-rose-500/20 to-pink-500/20",
     iconColor: "text-rose-500",
-  },
-  {
-    icon: ShieldCheck,
-    title: "DPDP Compliance Built-In",
-    description:
-      "India's first email platform with native DPDP Act compliance — one-click unsubscribe, consent tracking, and data retention controls out of the box.",
-    gradient: "from-emerald-500/20 to-teal-500/20",
-    iconColor: "text-emerald-500",
   },
   {
     icon: BarChart3,
@@ -116,24 +116,10 @@ const steps = [
 
 const pricingPlans = [
   {
-    name: "Free",
-    price: "0",
-    period: "forever",
-    description: "Perfect for getting started",
-    highlight: false,
-    features: [
-      "1,000 emails/month",
-      "No credit card required",
-      "Single sender domain",
-      "Basic templates",
-    ],
-    cta: "Start Free",
-    ctaLink: "/login?signup=true",
-  },
-  {
     name: "Starter",
     price: "999",
-    period: "/month",
+    period: "/user/mo",
+    billing: "Billed quarterly",
     description: "For small teams & newsletters",
     highlight: false,
     features: [
@@ -143,13 +129,14 @@ const pricingPlans = [
       "Open & click tracking",
       "Email support",
     ],
-    cta: "Get Started",
+    cta: "Start Free Trial",
     ctaLink: "/login?signup=true",
   },
   {
     name: "Growth",
     price: "2,499",
-    period: "/month",
+    period: "/mo",
+    billing: "Monthly or quarterly",
     description: "For scaling businesses",
     highlight: true,
     features: [
@@ -160,13 +147,14 @@ const pricingPlans = [
       "DPDP compliance tools",
       "Priority support",
     ],
-    cta: "Start Growing",
+    cta: "Start Free Trial",
     ctaLink: "/login?signup=true",
   },
   {
     name: "Scale",
     price: "5,999",
-    period: "/month",
+    period: "/mo",
+    billing: "Monthly or quarterly",
     description: "For high-volume senders",
     highlight: false,
     features: [
@@ -176,7 +164,7 @@ const pricingPlans = [
       "Multi-user / roles",
       "SLA-backed support",
     ],
-    cta: "Contact Sales",
+    cta: "Start Free Trial",
     ctaLink: "/login?signup=true",
   },
 ];
@@ -430,17 +418,48 @@ export default function Landing() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
             >
-              Enterprise-grade deliverability with built-in SPF, DKIM &amp; DMARC.
-              Create your org, invite your team, and land in inboxes — not spam
-              folders — from one powerful multi-tenant dashboard.
+              India's first DPDP-compliant email platform with enterprise-grade
+              deliverability — SPF, DKIM &amp; DMARC built in. Create your org,
+              invite your team, and land in inboxes — not spam folders.
             </motion.p>
+
+            {/* Hero highlight cards — Deliverability + DPDP */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.35 }}
+              className="mx-auto mt-10 grid max-w-2xl gap-4 sm:grid-cols-2"
+            >
+              <div className="flex items-start gap-3 rounded-xl border border-sky-500/20 bg-sky-500/5 px-5 py-4 text-left backdrop-blur-sm">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-500/15">
+                  <Shield className="h-5 w-5 text-sky-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Deliverability Infrastructure</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    Authenticated sending with SPF, DKIM &amp; DMARC — land in inboxes, not spam folders
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-4 text-left backdrop-blur-sm">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15">
+                  <ShieldCheck className="h-5 w-5 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">DPDP Compliance Built-In</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    One-click unsubscribe, consent tracking &amp; data retention — compliant out of the box
+                  </p>
+                </div>
+              </div>
+            </motion.div>
 
             {/* CTA buttons */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.45 }}
-              className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row"
+              className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
             >
               <Button
                 size="lg"
@@ -448,7 +467,7 @@ export default function Landing() {
                 asChild
               >
                 <Link to="/login?signup=true">
-                  Start Sending Free
+                  Start 14-Day Free Trial
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
@@ -472,7 +491,7 @@ export default function Landing() {
               transition={{ duration: 0.5, delay: 0.6 }}
               className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground"
             >
-              {["No credit card required", "1,000 free emails/month", "SPF/DKIM/DMARC included", "DPDP-compliant", "Setup in 2 minutes"].map(
+              {["DPDP-compliant", "SPF/DKIM/DMARC included", "14-day full-access trial", "No credit card required", "Setup in 2 minutes"].map(
                 (t) => (
                   <span key={t} className="flex items-center gap-1.5">
                     <CheckCircle className="h-3.5 w-3.5 text-primary" />
@@ -775,11 +794,11 @@ export default function Landing() {
               variants={fadeUp}
               className="mt-5 text-lg text-muted-foreground"
             >
-              Start free, scale as you grow. No hidden fees.
+              Every plan starts with a 14-day full-access trial. No credit card required.
             </motion.p>
           </AnimatedSection>
 
-          <AnimatedSection className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <AnimatedSection className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {pricingPlans.map((plan) => (
               <motion.div
                 key={plan.name}
@@ -806,11 +825,10 @@ export default function Landing() {
 
                 <div className="mb-6">
                   <span className="text-4xl font-extrabold text-foreground">
-                    {plan.price === "0" ? "Free" : `₹${plan.price}`}
+                    ₹{plan.price}
                   </span>
-                  {plan.price !== "0" && (
-                    <span className="text-sm text-muted-foreground">{plan.period}</span>
-                  )}
+                  <span className="text-sm text-muted-foreground">{plan.period}</span>
+                  <p className="mt-1 text-xs text-muted-foreground">{plan.billing}</p>
                 </div>
 
                 <ul className="mb-8 flex-1 space-y-3">
@@ -879,7 +897,7 @@ export default function Landing() {
                 </h2>
                 <p className="mx-auto mt-5 max-w-xl text-lg text-primary-foreground/80">
                   Register your organization in seconds and launch your first
-                  email campaign today. Start with 1,000 free emails per month.
+                  email campaign today. Start with a 14-day full-access trial — no credit card needed.
                 </p>
                 <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                   <Button

@@ -101,7 +101,7 @@ function KpiCard({
           <span
             className={`flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.5 rounded ${
               isUp
-                ? "text-emerald-600 bg-emerald-500/10"
+                ? "text-blue-600 bg-blue-500/10"
                 : "text-red-500 bg-red-500/10"
             }`}
           >
@@ -129,7 +129,7 @@ function KpiCard({
 function MessagingFunnel({ funnel }: { funnel: MessageFunnel }) {
   const stages = [
     { label: "Sent", count: funnel.sent, color: "primary", sub: "Total outbound" },
-    { label: "Delivered", count: funnel.delivered, color: "emerald-500", sub: `${funnel.sent > 0 ? Math.round((funnel.delivered / funnel.sent) * 100) : 0}% of sent` },
+    { label: "Delivered", count: funnel.delivered, color: "blue-500", sub: `${funnel.sent > 0 ? Math.round((funnel.delivered / funnel.sent) * 100) : 0}% of sent` },
     { label: "Opened", count: funnel.opened, color: "violet-500", sub: `${funnel.delivered > 0 ? Math.round((funnel.opened / funnel.delivered) * 100) : 0}% of delivered` },
     { label: "Failed", count: funnel.failed, color: "destructive", sub: `${funnel.sent > 0 ? Math.round((funnel.failed / funnel.sent) * 100) : 0}% failure rate` },
   ];
@@ -202,7 +202,7 @@ function CampaignPerformanceChart({ data }: { data: { day: string; sent: number;
               }}
             />
             <Bar dataKey="sent" name="Sent" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="delivered" name="Delivered" fill="#10b981" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="delivered" name="Delivered" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             <Bar dataKey="opened" name="Opened" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
             <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
           </BarChart>
@@ -223,8 +223,8 @@ function KeyMetricsCard({ kpis }: { kpis: OrgKpis }) {
             <p className="text-[11px] text-muted-foreground">Delivery Rate</p>
             <p className="text-2xl font-bold text-foreground">{kpis.deliveryRate}%</p>
           </div>
-          <div className="h-11 w-11 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-            <Target className="h-5 w-5 text-emerald-500" />
+          <div className="h-11 w-11 rounded-xl bg-blue-500/10 flex items-center justify-center">
+            <Target className="h-5 w-5 text-blue-500" />
           </div>
         </div>
         <div className="h-px bg-border" />
@@ -279,16 +279,16 @@ function DpdpCard({ dpdp, navigate }: { dpdp: DpdpStatus; navigate: (path: strin
               <p className="text-[11px] text-muted-foreground">Encryption Coverage</p>
               <div className="flex items-center gap-2">
                 <p className="text-2xl font-bold text-foreground">{encPct}%</p>
-                {encPct === 100 && <Badge className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px]">Complete</Badge>}
+                {encPct === 100 && <Badge className="bg-blue-500/10 text-blue-600 border-0 text-[10px]">Complete</Badge>}
               </div>
             </div>
-            <div className="h-11 w-11 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-              <Lock className="h-5 w-5 text-emerald-500" />
+            <div className="h-11 w-11 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <Lock className="h-5 w-5 text-blue-500" />
             </div>
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+              className="h-full rounded-full bg-blue-500 transition-all duration-500"
               style={{ width: `${encPct}%` }}
             />
           </div>
@@ -345,8 +345,8 @@ function StatusBadge({ status }: { status: string }) {
   const s = status.toLowerCase();
   if (s === "live" || s === "sending" || s === "running") {
     return (
-      <Badge className="border-0 bg-emerald-500/10 text-emerald-600">
-        <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+      <Badge className="border-0 bg-blue-500/10 text-blue-600">
+        <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
         Live
       </Badge>
     );
@@ -428,7 +428,7 @@ function RecentBroadcastsTable({ campaigns, navigate }: { campaigns: RecentCampa
 
 // --- Message Mix Donut ---
 const MIX_COLORS: Record<string, string> = {
-  Marketing: "#10b981",
+  Marketing: "#3b82f6",
   Utility: "#0ea5e9",
   Transactional: "#8b5cf6",
   Uncategorized: "#94a3b8",
@@ -525,7 +525,7 @@ export default function OrgDashboard() {
   const navigate = useNavigate();
   const isAdmin = orgRole === "admin";
 
-  const userName = user?.email?.split("@")[0] || "there";
+  const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "there";
 
   return (
     <DashboardLayout>
@@ -535,15 +535,15 @@ export default function OrgDashboard() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
               Email{" "}
-              <span className="bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
                 Command Center
               </span>
             </h1>
             <div className="flex items-center gap-4 mt-1.5">
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
                 </span>
                 Live Data
               </span>
@@ -592,9 +592,9 @@ export default function OrgDashboard() {
                 value={data.kpis.deliveryRate}
                 suffix="%"
                 prev={data.kpis.deliveryRatePrev}
-                colorClass="from-emerald-500/10 to-emerald-500/5"
-                borderClass="border-emerald-500/20"
-                shadowClass="hover:shadow-emerald-500/10"
+                colorClass="from-blue-500/10 to-blue-500/5"
+                borderClass="border-blue-500/20"
+                shadowClass="hover:shadow-blue-500/10"
                 icon={CheckCheck}
                 bgIcon={CheckCheck}
                 onClick={() => navigate("/analytics")}
@@ -682,8 +682,8 @@ export default function OrgDashboard() {
                   <p className="text-[11px] text-muted-foreground">Active</p>
                   <p className="text-2xl font-bold text-foreground">{data.kpis.activeCampaigns}</p>
                 </div>
-                <div className="h-11 w-11 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                  <Megaphone className="h-5 w-5 text-emerald-500" />
+                <div className="h-11 w-11 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                  <Megaphone className="h-5 w-5 text-blue-500" />
                 </div>
               </div>
               <div className="h-px bg-border" />

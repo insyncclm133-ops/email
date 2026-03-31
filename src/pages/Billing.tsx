@@ -251,9 +251,9 @@ export default function Billing() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Credited</p>
-                  <p className="text-2xl font-bold text-green-600">{formatCurrency(wallet.total_credited)}</p>
+                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(wallet.total_credited)}</p>
                 </div>
-                <ArrowDownRight className="h-8 w-8 text-green-600/30" />
+                <ArrowDownRight className="h-8 w-8 text-blue-600/30" />
               </div>
             </CardContent>
           </Card>
@@ -367,14 +367,14 @@ export default function Billing() {
                             <TableCell className="text-xs">{formatDate(tx.created_at)}</TableCell>
                             <TableCell>
                               {tx.type === "credit" ? (
-                                <Badge className="bg-green-100 text-green-800">Credit</Badge>
+                                <Badge className="bg-blue-100 text-blue-800">Credit</Badge>
                               ) : (
                                 <Badge variant="secondary">Debit</Badge>
                               )}
                             </TableCell>
                             <TableCell className="text-sm">{categoryLabel(tx.category)}</TableCell>
                             <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">{tx.description}</TableCell>
-                            <TableCell className={`text-right font-mono ${tx.type === "credit" ? "text-green-600" : ""}`}>
+                            <TableCell className={`text-right font-mono ${tx.type === "credit" ? "text-blue-600" : ""}`}>
                               {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
                             </TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(tx.balance_after)}</TableCell>
@@ -446,24 +446,10 @@ export default function Billing() {
 
           {/* Pricing Tab */}
           <TabsContent value="pricing">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Free */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Free</CardTitle>
-                  <CardDescription>Get started</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">Free</p>
-                  <p className="text-xs text-muted-foreground mb-4">forever</p>
-                  <ul className="space-y-2 text-sm">
-                    {["1,000 emails/month", "No credit card required", "Single sender domain", "Basic templates"].map((f) => (
-                      <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />{f}</li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-
+            <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-center">
+              <p className="text-sm font-medium text-primary">Every plan starts with a 14-day full-access trial — no credit card required</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {/* Starter */}
               <Card>
                 <CardHeader className="pb-3">
@@ -471,11 +457,11 @@ export default function Billing() {
                   <CardDescription>Small teams</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold">₹999<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                  <p className="text-xs text-muted-foreground mb-4">+ 18% GST</p>
+                  <p className="text-3xl font-bold">₹999<span className="text-sm font-normal text-muted-foreground">/user/mo</span></p>
+                  <p className="text-xs text-muted-foreground mb-4">Billed quarterly · + 18% GST</p>
                   <ul className="space-y-2 text-sm">
                     {["10,000 emails/month", "3 sender domains", "HTML template editor", "Open & click tracking", "Email support"].map((f) => (
-                      <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />{f}</li>
+                      <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-blue-500 shrink-0" />{f}</li>
                     ))}
                   </ul>
                 </CardContent>
@@ -492,7 +478,7 @@ export default function Billing() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-3xl font-bold text-primary">₹2,499<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                  <p className="text-xs text-muted-foreground mb-4">+ 18% GST</p>
+                  <p className="text-xs text-muted-foreground mb-4">Monthly or quarterly · + 18% GST</p>
                   <ul className="space-y-2 text-sm">
                     {["50,000 emails/month", "Unlimited sender domains", "Full automation workflows", "AI Insights", "DPDP compliance tools", "Priority support"].map((f) => (
                       <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />{f}</li>
@@ -509,17 +495,17 @@ export default function Billing() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-3xl font-bold">₹5,999<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                  <p className="text-xs text-muted-foreground mb-4">+ 18% GST</p>
+                  <p className="text-xs text-muted-foreground mb-4">Monthly or quarterly · + 18% GST</p>
                   <ul className="space-y-2 text-sm">
                     {["2,00,000 emails/month", "Dedicated IP", "Advanced analytics", "Multi-user / roles", "SLA-backed support"].map((f) => (
-                      <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />{f}</li>
+                      <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-blue-500 shrink-0" />{f}</li>
                     ))}
                   </ul>
                 </CardContent>
               </Card>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              All paid plans include 18% GST. Need a custom plan? Contact <a href="mailto:a@in-sync.co.in" className="text-primary hover:underline">a@in-sync.co.in</a>
+              All plans include 18% GST. Need a custom plan? Contact <a href="mailto:a@in-sync.co.in" className="text-primary hover:underline">a@in-sync.co.in</a>
             </p>
           </TabsContent>
         </Tabs>
