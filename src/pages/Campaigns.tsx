@@ -406,16 +406,20 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   };
 
   const downloadCsvTemplate = () => {
-    if (!selectedTemplate) return;
-    // Column 1 is always email. Remaining columns: name + one per template variable.
-    const varCols = templateVars.map((v) => {
-      const num = v.replace(/\D/g, "");
-      return num === "1" ? "name" : `variable_${num}`;
-    });
-    // Deduplicate — if {{1}} maps to "name", don't add "name" twice
-    const hasName = varCols.includes("name");
-    const cols = ["email", ...(hasName ? [] : ["name"]), ...varCols];
-    const uniqueCols = [...new Set(cols)];
+    let uniqueCols: string[];
+    if (selectedTemplate && templateVars.length > 0) {
+      // Column 1 is always email. Remaining columns: name + one per template variable.
+      const varCols = templateVars.map((v) => {
+        const num = v.replace(/\D/g, "");
+        return num === "1" ? "name" : `variable_${num}`;
+      });
+      // Deduplicate — if {{1}} maps to "name", don't add "name" twice
+      const hasName = varCols.includes("name");
+      const cols = ["email", ...(hasName ? [] : ["name"]), ...varCols];
+      uniqueCols = [...new Set(cols)];
+    } else {
+      uniqueCols = ["email", "name"];
+    }
     const header = uniqueCols.join(",");
     const sampleRow = (email: string, name: string) =>
       uniqueCols.map((col) => {
@@ -692,11 +696,9 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()}>
                   <Upload className="h-3.5 w-3.5" /> Upload CSV
                 </Button>
-                {selectedTemplate && (
-                  <Button variant="ghost" size="sm" className="gap-2" onClick={downloadCsvTemplate}>
-                    <Download className="h-3.5 w-3.5" /> Sample CSV
-                  </Button>
-                )}
+                <Button variant="ghost" size="sm" className="gap-2" onClick={downloadCsvTemplate}>
+                  <Download className="h-3.5 w-3.5" /> Download Template
+                </Button>
                 <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
               </div>
 
