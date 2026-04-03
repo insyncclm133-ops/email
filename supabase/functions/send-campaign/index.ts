@@ -192,11 +192,11 @@ serve(async (req) => {
       });
     }
 
-    // Extract variable numbers from template content
+    // Extract named variables from template content
     const allContent = `${emailSubject} ${tplContent} ${emailHtml}`;
-    const varMatches = allContent.match(/\{\{(\d+)\}\}/g);
-    const varNums = varMatches
-      ? [...new Set(varMatches)].map((v) => v.replace(/\D/g, "")).sort((a, b) => parseInt(a) - parseInt(b))
+    const varMatches = allContent.match(/\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g);
+    const varNames = varMatches
+      ? [...new Set(varMatches.map((v) => v.replace(/\{\{|\}\}/g, "")))]
       : [];
 
     // ── Fetch this batch of contacts ──
@@ -304,11 +304,11 @@ serve(async (req) => {
       let personalizedHtml = emailHtml;
 
       if (mapping) {
-        for (const [varNum, field] of Object.entries(mapping)) {
+        for (const [varName, field] of Object.entries(mapping)) {
           const value = resolveField(field);
-          personalizedSubject = personalizedSubject.replaceAll(`{{${varNum}}}`, value);
-          personalizedContent = personalizedContent.replaceAll(`{{${varNum}}}`, value);
-          personalizedHtml = personalizedHtml.replaceAll(`{{${varNum}}}`, value);
+          personalizedSubject = personalizedSubject.replaceAll(`{{${varName}}}`, value);
+          personalizedContent = personalizedContent.replaceAll(`{{${varName}}}`, value);
+          personalizedHtml = personalizedHtml.replaceAll(`{{${varName}}}`, value);
         }
       }
 

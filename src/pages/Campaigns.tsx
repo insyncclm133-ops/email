@@ -42,17 +42,15 @@ const UPLOAD_BATCH = 5000;
 const UPSERT_BATCH = 500;
 
 function extractTemplateVars(text: string): string[] {
-  const matches = text.match(/\{\{(\d+)\}\}/g);
+  const matches = text.match(/\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g);
   if (!matches) return [];
-  return [...new Set(matches)].sort(
-    (a, b) => parseInt(a.replace(/\D/g, "")) - parseInt(b.replace(/\D/g, ""))
-  );
+  return [...new Set(matches.map((m) => m.replace(/\{\{|\}\}/g, "")))];
 }
 
 function resolveMessage(text: string, mapping: Record<string, string>, row: CsvRow): string {
   let resolved = text;
-  for (const [varNum, col] of Object.entries(mapping)) {
-    resolved = resolved.replaceAll(`{{${varNum}}}`, row[col] || `{{${varNum}}}`);
+  for (const [varName, col] of Object.entries(mapping)) {
+    resolved = resolved.replaceAll(`{{${varName}}}`, row[col] || `{{${varName}}}`);
   }
   return resolved;
 }
@@ -328,17 +326,11 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     if (templateVars.length === 0 || csvHeaders.length === 0) return;
     const auto: Record<string, string> = {};
-    for (const v of templateVars) {
-      const num = v.replace(/\D/g, "");
-      const nameCol = csvHeaders.find((h) => h.toLowerCase() === "name");
-      if (num === "1" && nameCol) {
-        auto[num] = nameCol;
-      } else {
-        const nonEmailCols = csvHeaders.filter((h) => h !== emailColumn);
-        const idx = parseInt(num) - 1;
-        if (idx < nonEmailCols.length) {
-          auto[num] = nonEmailCols[idx];
-        }
+    for (const varName of templateVars) {
+      // Direct match: CSV column header matches variable name
+      const match = csvHeaders.find((h) => h.toLowerCase() === varName.toLowerCase());
+      if (match) {
+        auto[varName] = match;
       }
     }
     setVariableMapping(auto);
@@ -406,28 +398,12 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   };
 
   const downloadCsvTemplate = () => {
-    let uniqueCols: string[];
-    if (selectedTemplate && templateVars.length > 0) {
-      // Column 1 is always email. Remaining columns: name + one per template variable.
-      const varCols = templateVars.map((v) => {
-        const num = v.replace(/\D/g, "");
-        return num === "1" ? "name" : `variable_${num}`;
-      });
-      // Deduplicate — if {{1}} maps to "name", don't add "name" twice
-      const hasName = varCols.includes("name");
-      const cols = ["email", ...(hasName ? [] : ["name"]), ...varCols];
-      uniqueCols = [...new Set(cols)];
-    } else {
-      uniqueCols = ["email", "name"];
-    }
-    const header = uniqueCols.join(",");
-    const sampleRow = (email: string, name: string) =>
-      uniqueCols.map((col) => {
-        if (col === "email") return email;
-        if (col === "name") return name;
-        return `sample_${col}`;
-      }).join(",");
-    const csv = [header, sampleRow("john@example.com", "John"), sampleRow("jane@example.com", "Jane")].join("\n");
+    if (!selectedTemplate || templateVars.length === 0) return;
+    const cols = ["email", ...templateVars];
+    const header = cols.join(",");
+    const sampleRow = (email: string) =>
+      cols.map((col) => (col === "email" ? email : `sample_${col}`)).join(",");
+    const csv = [header, sampleRow("john@example.com"), sampleRow("jane@example.com")].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -648,7 +624,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                   placeholder="e.g., Your weekly update from Acme"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Supports variables like {"{{1}}"} from your template
+                  Supports variables like {"{{name}}"} from your template
                 </p>
               </div>
               <div>
@@ -696,9 +672,11 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()}>
                   <Upload className="h-3.5 w-3.5" /> Upload CSV
                 </Button>
-                <Button variant="ghost" size="sm" className="gap-2" onClick={downloadCsvTemplate}>
-                  <Download className="h-3.5 w-3.5" /> Download Template
-                </Button>
+                {selectedTemplate && templateVars.length > 0 && (
+                  <Button variant="ghost" size="sm" className="gap-2" onClick={downloadCsvTemplate}>
+                    <Download className="h-3.5 w-3.5" /> Download Template
+                  </Button>
+                )}
                 <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
               </div>
 
@@ -752,17 +730,15 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                 <CardDescription className="text-xs">Connect template variables to CSV columns</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {templateVars.map((v) => {
-                  const num = v.replace(/\D/g, "");
-                  return (
-                    <div key={num} className="flex items-center gap-3">
-                      <div className="flex h-7 w-14 items-center justify-center rounded bg-primary/10 text-xs font-mono font-medium text-primary">
-                        {`{{${num}}}`}
+                {templateVars.map((varName) => (
+                    <div key={varName} className="flex items-center gap-3">
+                      <div className="flex h-7 min-w-14 px-2 items-center justify-center rounded bg-primary/10 text-xs font-mono font-medium text-primary">
+                        {`{{${varName}}}`}
                       </div>
                       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
                       <Select
-                        value={variableMapping[num] || ""}
-                        onValueChange={(val) => setVariableMapping({ ...variableMapping, [num]: val })}
+                        value={variableMapping[varName] || ""}
+                        onValueChange={(val) => setVariableMapping({ ...variableMapping, [varName]: val })}
                       >
                         <SelectTrigger className="w-44 h-8 text-sm">
                           <SelectValue placeholder="Select column" />
@@ -774,8 +750,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                         </SelectContent>
                       </Select>
                     </div>
-                  );
-                })}
+                  ))}
               </CardContent>
             </Card>
           )}

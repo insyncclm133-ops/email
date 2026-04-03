@@ -39,7 +39,7 @@ interface BuilderForm {
   bodyText: string;
   htmlContent: string;
   previewText: string;
-  sampleValues: string[];
+  sampleValues: Record<string, string>;
 }
 
 const emptyForm: BuilderForm = {
@@ -48,24 +48,22 @@ const emptyForm: BuilderForm = {
   bodyText: "",
   htmlContent: "",
   previewText: "",
-  sampleValues: [],
+  sampleValues: {},
 };
 
 // ─── Helpers ───
 
 function extractVariables(text: string): string[] {
-  const matches = text.match(/\{\{(\d+)\}\}/g);
+  const matches = text.match(/\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g);
   if (!matches) return [];
-  const unique = [...new Set(matches)];
-  unique.sort((a, b) => parseInt(a.replace(/\D/g, "")) - parseInt(b.replace(/\D/g, "")));
-  return unique;
+  return [...new Set(matches.map((m) => m.replace(/\{\{|\}\}/g, "")))];
 }
 
-function resolveText(text: string, samples: string[]): string {
+function resolveText(text: string, sampleMap: Record<string, string>): string {
   let resolved = text;
-  samples.forEach((val, i) => {
-    if (val) resolved = resolved.replaceAll(`{{${i + 1}}}`, val);
-  });
+  for (const [varName, val] of Object.entries(sampleMap)) {
+    if (val) resolved = resolved.replaceAll(`{{${varName}}}`, val);
+  }
   return resolved;
 }
 
@@ -151,7 +149,7 @@ function TemplateBuilder({
         bodyText: editTemplate.content || "",
         htmlContent: editTemplate.html_content || "",
         previewText: editTemplate.preview_text || "",
-        sampleValues: [],
+        sampleValues: {},
       };
     }
     return { ...emptyForm };
@@ -163,44 +161,30 @@ function TemplateBuilder({
   const allContent = `${form.subject} ${form.bodyText} ${form.htmlContent}`;
   const allVariables = useMemo(() => extractVariables(allContent), [allContent]);
 
-  // Adjust sample values array when variables change
-  useEffect(() => {
-    const maxVar = allVariables.length > 0
-      ? Math.max(...allVariables.map((v) => parseInt(v.replace(/\D/g, ""))))
-      : 0;
-    if (form.sampleValues.length < maxVar) {
-      setForm((prev) => ({
-        ...prev,
-        sampleValues: [
-          ...prev.sampleValues,
-          ...Array(maxVar - prev.sampleValues.length).fill(""),
-        ],
-      }));
-    }
-  }, [allVariables]);
-
   const updateForm = (patch: Partial<BuilderForm>) => setForm((prev) => ({ ...prev, ...patch }));
 
+  const [newVarName, setNewVarName] = useState("");
+
   const insertVariable = () => {
-    const nextNum = allVariables.length > 0
-      ? Math.max(...allVariables.map((v) => parseInt(v.replace(/\D/g, "")))) + 1
-      : 1;
+    const varTag = newVarName.trim() ? `{{${newVarName.trim().replace(/\s+/g, "_")}}}` : "";
+    if (!varTag) return;
     const textarea = bodyRef.current;
     if (textarea && activeTab === "text") {
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const text = form.bodyText;
-      const newText = text.slice(0, start) + `{{${nextNum}}}` + text.slice(end);
+      const newText = text.slice(0, start) + varTag + text.slice(end);
       updateForm({ bodyText: newText });
       setTimeout(() => {
         textarea.focus();
-        textarea.selectionStart = textarea.selectionEnd = start + `{{${nextNum}}}`.length;
+        textarea.selectionStart = textarea.selectionEnd = start + varTag.length;
       }, 0);
     } else if (activeTab === "text") {
-      updateForm({ bodyText: form.bodyText + `{{${nextNum}}}` });
+      updateForm({ bodyText: form.bodyText + varTag });
     } else {
-      updateForm({ htmlContent: form.htmlContent + `{{${nextNum}}}` });
+      updateForm({ htmlContent: form.htmlContent + varTag });
     }
+    setNewVarName("");
   };
 
   const handleSubmit = async () => {
@@ -299,12 +283,12 @@ function TemplateBuilder({
               <div>
                 <Label>Subject Line *</Label>
                 <Input
-                  placeholder="e.g., Your weekly update from {{1}}"
+                  placeholder="e.g., Your weekly update from {{company}}"
                   value={form.subject}
                   onChange={(e) => updateForm({ subject: e.target.value })}
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Use {"{{1}}"}, {"{{2}}"}, etc. for personalization variables
+                  Use {"{{name}}"}, {"{{company}}"}, etc. for personalization variables
                 </p>
               </div>
               <div>
@@ -335,15 +319,24 @@ function TemplateBuilder({
                     <TabsTrigger value="text">Plain Text</TabsTrigger>
                     <TabsTrigger value="html">HTML</TabsTrigger>
                   </TabsList>
-                  <Button type="button" variant="ghost" size="sm" className="gap-1 text-xs" onClick={insertVariable}>
-                    <Plus className="h-3 w-3" /> Variable
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      placeholder="variable name"
+                      value={newVarName}
+                      onChange={(e) => setNewVarName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), insertVariable())}
+                      className="h-7 w-32 text-xs"
+                    />
+                    <Button type="button" variant="ghost" size="sm" className="gap-1 text-xs" onClick={insertVariable}>
+                      <Plus className="h-3 w-3" /> Insert
+                    </Button>
+                  </div>
                 </div>
 
                 <TabsContent value="text" className="mt-3">
                   <Textarea
                     ref={bodyRef}
-                    placeholder="Hi {{1}},&#10;&#10;We're excited to share our latest updates with you..."
+                    placeholder="Hi {{name}},&#10;&#10;We're excited to share our latest updates with you..."
                     rows={10}
                     value={form.bodyText}
                     onChange={(e) => updateForm({ bodyText: e.target.value })}
@@ -355,7 +348,7 @@ function TemplateBuilder({
 
                 <TabsContent value="html" className="mt-3">
                   <Textarea
-                    placeholder='<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">&#10;  <h1>Hello {{1}}</h1>&#10;  <p>Your content here...</p>&#10;</div>'
+                    placeholder='<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">&#10;  <h1>Hello {{name}}</h1>&#10;  <p>Your content here...</p>&#10;</div>'
                     rows={14}
                     value={form.htmlContent}
                     onChange={(e) => updateForm({ htmlContent: e.target.value })}
@@ -380,24 +373,19 @@ function TemplateBuilder({
               </CardHeader>
               <CardContent>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {allVariables.map((v) => {
-                    const idx = parseInt(v.replace(/\D/g, "")) - 1;
-                    return (
-                      <div key={v} className="flex items-center gap-2">
-                        <Badge variant="secondary" className="shrink-0 font-mono text-xs">{v}</Badge>
-                        <Input
-                          placeholder={`e.g., ${idx === 0 ? "John" : idx === 1 ? "Acme Corp" : "sample"}`}
-                          value={form.sampleValues[idx] || ""}
-                          onChange={(e) => {
-                            const updated = [...form.sampleValues];
-                            updated[idx] = e.target.value;
-                            updateForm({ sampleValues: updated });
-                          }}
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                    );
-                  })}
+                  {allVariables.map((varName) => (
+                    <div key={varName} className="flex items-center gap-2">
+                      <Badge variant="secondary" className="shrink-0 font-mono text-xs">{`{{${varName}}}`}</Badge>
+                      <Input
+                        placeholder={`e.g., sample ${varName}`}
+                        value={form.sampleValues[varName] || ""}
+                        onChange={(e) => {
+                          updateForm({ sampleValues: { ...form.sampleValues, [varName]: e.target.value } });
+                        }}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
