@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { motion } from "framer-motion";
 import {
   Mail,
@@ -150,6 +151,11 @@ export default function Login() {
   const [isSignUp, setIsSignUp] = useState(searchParams.get("signup") === "true");
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [sessionId, setSessionId] = useState("");
+  const [otpValue, setOtpValue] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -162,8 +168,48 @@ export default function Login() {
     setIsSignUp(searchParams.get("signup") === "true");
   }, [searchParams]);
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  const handleVerifyOtp = async () => {
+    setOtpLoading(true);
+    const { data, error } = await supabase.functions.invoke("verify-otp", {
+      body: { email, otp_code: otpValue },
+    });
+    if (error || data?.error || !data?.tokenHash) {
+      toast({ variant: "destructive", title: "Verification failed", description: data?.error || error?.message });
+    } else {
+      const { error: sessionErr } = await supabase.auth.verifyOtp({
+        token_hash: data.tokenHash,
+        type: "magiclink",
+      });
+      if (sessionErr) {
+        toast({ variant: "destructive", title: "Login failed", description: sessionErr.message });
+      }
+      // AuthContext's onAuthStateChange fires → navigates to /dashboard
+    }
+    setOtpLoading(false);
+  };
+
+  const handleResend = async () => {
+    const { data, error } = await supabase.functions.invoke("send-otp", {
+      body: { email, action: "send" },
+    });
+    if (!error && !data?.error) {
+      setSessionId(data.session_id);
+      setResendCooldown(60);
+      toast({ title: "Code resent", description: "A new code was sent to your email." });
+    } else {
+      toast({ variant: "destructive", title: "Failed to resend", description: data?.error || error?.message });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSignUp && otpStep) return;
     setLoading(true);
 
     if (isForgotPassword) {
@@ -184,7 +230,10 @@ export default function Login() {
           const msg = data?.error || (typeof data === "string" ? data : null) || error?.message || "Something went wrong. Please try again.";
           toast({ variant: "destructive", title: "Sign up failed", description: msg });
         } else {
-          toast({ title: "Check your email", description: "We've sent you a confirmation link." });
+          setSessionId(data.session_id);
+          setOtpStep(true);
+          setResendCooldown(60);
+          toast({ title: "Check your email", description: "Enter the 6-digit code we sent you." });
         }
       } catch (err: any) {
         toast({ variant: "destructive", title: "Sign up failed", description: err.message || "Something went wrong. Please try again." });
@@ -397,55 +446,100 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isSignUp && otpStep}
                     className="h-11"
                   />
                 </div>
-                {!isForgotPassword && (
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium">
-                      Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        minLength={6}
-                        className="h-11 pr-10"
-                      />
-                      <button
+                {isSignUp && otpStep ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Enter the 6-digit code sent to <strong>{email}</strong>
+                    </p>
+                    <InputOTP maxLength={6} value={otpValue} onChange={setOtpValue}>
+                      <InputOTPGroup>
+                        {[0, 1, 2, 3, 4, 5].map((i) => (
+                          <InputOTPSlot key={i} index={i} />
+                        ))}
+                      </InputOTPGroup>
+                    </InputOTP>
+                    <Button
+                      type="button"
+                      onClick={handleVerifyOtp}
+                      disabled={otpValue.length !== 6 || otpLoading}
+                      className="w-full"
+                    >
+                      {otpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify & Create Account"}
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button
                         type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors z-10"
-                        tabIndex={-1}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        variant="ghost"
+                        onClick={() => { setOtpStep(false); setOtpValue(""); }}
+                        className="flex-1"
                       >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
+                        Change email
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleResend}
+                        disabled={resendCooldown > 0}
+                        className="flex-1"
+                      >
+                        {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
+                      </Button>
                     </div>
                   </div>
+                ) : (
+                  <>
+                    {!isForgotPassword && (
+                      <div className="space-y-2">
+                        <Label htmlFor="password" className="text-sm font-medium">
+                          Password
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            minLength={6}
+                            className="h-11 pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors z-10"
+                            tabIndex={-1}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                          >
+                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <Button
+                      type="submit"
+                      className="h-11 w-full text-sm font-semibold shadow-lg shadow-primary/25"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Please wait...
+                        </>
+                      ) : isForgotPassword ? (
+                        "Send Reset Link"
+                      ) : isSignUp ? (
+                        "Create Account"
+                      ) : (
+                        "Sign In"
+                      )}
+                    </Button>
+                  </>
                 )}
-                <Button
-                  type="submit"
-                  className="h-11 w-full text-sm font-semibold shadow-lg shadow-primary/25"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Please wait...
-                    </>
-                  ) : isForgotPassword ? (
-                    "Send Reset Link"
-                  ) : isSignUp ? (
-                    "Create Account"
-                  ) : (
-                    "Sign In"
-                  )}
-                </Button>
               </form>
 
               {/* Forgot password */}

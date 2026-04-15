@@ -86,8 +86,23 @@ serve(async (req) => {
       .update({ verified_at: new Date().toISOString() })
       .eq("id", otpRow.id);
 
+    // Confirm the user's email and generate a session token
+    const { data: { users } } =
+      await supabase.auth.admin.listUsers({ filter: email, page: 1, perPage: 1 });
+    const authUser = users?.find((u: any) => u.email === email);
+
+    if (authUser) {
+      await supabase.auth.admin.updateUserById(authUser.id, { email_confirm: true });
+    }
+
+    const { data: linkData } = await supabase.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    });
+    const tokenHash = linkData?.properties?.hashed_token;
+
     return new Response(
-      JSON.stringify({ success: true, session_id: otpRow.session_id }),
+      JSON.stringify({ success: true, session_id: otpRow.session_id, tokenHash, email }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
