@@ -42,9 +42,17 @@ const UPLOAD_BATCH = 5000;
 const UPSERT_BATCH = 500;
 
 function extractTemplateVars(text: string): string[] {
-  const matches = text.match(/\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g);
+  const matches = text.match(/\{\{([a-zA-Z_][a-zA-Z0-9_]*|\d+)\}\}/g);
   if (!matches) return [];
-  return [...new Set(matches.map((m) => m.replace(/\{\{|\}\}/g, "")))];
+  const vars = [...new Set(matches.map((m) => m.replace(/\{\{|\}\}/g, "")))];
+  return vars.sort((a, b) => {
+    const aNum = /^\d+$/.test(a);
+    const bNum = /^\d+$/.test(b);
+    if (aNum && bNum) return parseInt(a, 10) - parseInt(b, 10);
+    if (aNum) return -1;
+    if (bNum) return 1;
+    return a.localeCompare(b);
+  });
 }
 
 function resolveMessage(text: string, mapping: Record<string, string>, row: CsvRow): string {
@@ -327,8 +335,12 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
     if (templateVars.length === 0 || csvHeaders.length === 0) return;
     const auto: Record<string, string> = {};
     for (const varName of templateVars) {
-      // Direct match: CSV column header matches variable name
-      const match = csvHeaders.find((h) => h.toLowerCase() === varName.toLowerCase());
+      const braced = `{{${varName}}}`.toLowerCase();
+      const raw = varName.toLowerCase();
+      const match = csvHeaders.find((h) => {
+        const hl = h.toLowerCase();
+        return hl === raw || hl === braced;
+      });
       if (match) {
         auto[varName] = match;
       }
@@ -399,10 +411,11 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
 
   const downloadCsvTemplate = () => {
     if (!selectedTemplate) return;
-    const cols = ["email", ...templateVars];
+    const varCols = templateVars.map((v) => `{{${v}}}`);
+    const cols = ["email", ...varCols];
     const header = cols.join(",");
     const sampleRow = (email: string) =>
-      cols.map((col) => (col === "email" ? email : `sample_${col}`)).join(",");
+      [email, ...templateVars.map((v) => `sample_${v}`)].join(",");
     const csv = [header, sampleRow("john@example.com"), sampleRow("jane@example.com")].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -684,7 +697,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
                           <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">email</th>
                           {templateVars.map((v) => (
                             <th key={v} className="px-3 py-1.5 text-left font-medium text-muted-foreground">
-                              {v}
+                              {`{{${v}}}`}
                             </th>
                           ))}
                         </tr>
