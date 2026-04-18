@@ -398,7 +398,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
   };
 
   const downloadCsvTemplate = () => {
-    if (!selectedTemplate || templateVars.length === 0) return;
+    if (!selectedTemplate) return;
     const cols = ["email", ...templateVars];
     const header = cols.join(",");
     const sampleRow = (email: string) =>
@@ -668,17 +668,75 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
               <CardTitle className="text-base">Contact List</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex gap-3">
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()}>
-                  <Upload className="h-3.5 w-3.5" /> Upload CSV
-                </Button>
-                {selectedTemplate && templateVars.length > 0 && (
-                  <Button variant="ghost" size="sm" className="gap-2" onClick={downloadCsvTemplate}>
-                    <Download className="h-3.5 w-3.5" /> Download Template
+              {/* Format guide + download template — only show when template is selected and no CSV uploaded */}
+              {!csvFileName && selectedTemplate && (
+                <div className="rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-4 space-y-3">
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium text-foreground">CSV Format</p>
+                    <p className="text-xs text-muted-foreground">
+                      Your file must have an <span className="font-mono font-medium text-foreground">email</span> column{templateVars.length > 0 && <> and columns for each template variable (<span className="font-mono font-medium text-foreground">{templateVars.map((v) => `{{${v}}}`).join(", ")}</span>)</>}.
+                    </p>
+                  </div>
+                  <div className="overflow-hidden rounded border bg-background">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">email</th>
+                          {templateVars.map((v) => (
+                            <th key={v} className="px-3 py-1.5 text-left font-medium text-muted-foreground">
+                              {v}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b">
+                          <td className="px-3 py-1.5">john@example.com</td>
+                          {templateVars.map((v) => (
+                            <td key={v} className="px-3 py-1.5">sample_{v}</td>
+                          ))}
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-1.5">jane@example.com</td>
+                          {templateVars.map((v) => (
+                            <td key={v} className="px-3 py-1.5">sample_{v}</td>
+                          ))}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="default" size="sm" className="gap-2" onClick={downloadCsvTemplate}>
+                      <Download className="h-3.5 w-3.5" /> Download Template
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()}>
+                      <Upload className="h-3.5 w-3.5" /> Upload CSV
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Prompt to select template first */}
+              {!csvFileName && !selectedTemplate && (
+                <p className="py-3 text-center text-sm text-muted-foreground">
+                  Select a template above to see the required CSV format.
+                </p>
+              )}
+
+              {/* Buttons when CSV already loaded (for replacing) */}
+              {csvFileName && (
+                <div className="flex gap-3">
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="h-3.5 w-3.5" /> Replace CSV
                   </Button>
-                )}
-                <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
-              </div>
+                  {selectedTemplate && templateVars.length > 0 && (
+                    <Button variant="ghost" size="sm" className="gap-2" onClick={downloadCsvTemplate}>
+                      <Download className="h-3.5 w-3.5" /> Download Template
+                    </Button>
+                  )}
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
 
               {csvFileName && (
                 <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
