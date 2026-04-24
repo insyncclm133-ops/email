@@ -440,6 +440,9 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
     setLaunching(true);
     setUploadProgress({ done: 0, total: csvRows.length, failed: 0 });
 
+    let createdCampaignId: string | null = null;
+    let totalAssigned = 0;
+
     try {
       // 1. Create campaign
       const { data: campaign, error: campErr } = await supabase
@@ -457,6 +460,7 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
         .select("id")
         .single();
       if (campErr) throw campErr;
+      createdCampaignId = campaign.id;
 
       // 3. Prepare contact inserts
       const nameCol = csvHeaders.find((h) => h.toLowerCase() === "name");
@@ -481,7 +485,6 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
       // On batch failure, retry record-by-record to isolate bad rows and continue
       let totalUploaded = 0;
       let totalFailed = 0;
-      let totalAssigned = 0;
 
       for (let chunkStart = 0; chunkStart < contactInserts.length; chunkStart += UPLOAD_BATCH) {
         const chunk = contactInserts.slice(chunkStart, chunkStart + UPLOAD_BATCH);
@@ -596,6 +599,11 @@ function CampaignCreator({ onBack }: { onBack: () => void }) {
       navigate(`/campaigns/${campaign.id}`);
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
+      // Roll back: if we created a campaign row but no contacts got attached,
+      // delete it so the user isn't left with an unlaunchable draft.
+      if (createdCampaignId && totalAssigned === 0) {
+        await supabase.from("campaigns").delete().eq("id", createdCampaignId);
+      }
     } finally {
       setLaunching(false);
       setUploadProgress(null);
