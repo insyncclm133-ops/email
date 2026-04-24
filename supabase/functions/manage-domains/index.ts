@@ -7,6 +7,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+class ResendError extends Error {
+  status: number;
+  body: unknown;
+  constructor(message: string, status: number, body: unknown) {
+    super(message);
+    this.status = status;
+    this.body = body;
+  }
+}
+
 async function resendFetch(path: string, method: string, apiKey: string, body?: unknown) {
   const res = await fetch(`https://api.resend.com${path}`, {
     method,
@@ -16,9 +26,12 @@ async function resendFetch(path: string, method: string, apiKey: string, body?: 
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
-  const data = await res.json();
+  const text = await res.text();
+  let data: any = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!res.ok) {
-    throw new Error(data?.message || data?.error || `Resend API error: ${res.status}`);
+    const msg = data?.message || data?.error || `Resend API error: ${res.status}`;
+    throw new ResendError(msg, res.status, data);
   }
   return data;
 }
@@ -101,8 +114,50 @@ serve(async (req) => {
         );
       }
 
-      // Call Resend API to create domain
-      const resendDomain = await resendFetch("/domains", "POST", RESEND_API_KEY, { name: domain });
+      // Block if another org already has this domain registered in our DB
+      const { data: existingOrgDomain } = await supabase
+        .from("sender_domains")
+        .select("id, org_id")
+        .eq("domain", domain)
+        .neq("org_id", org_id)
+        .maybeSingle();
+      if (existingOrgDomain) {
+        return new Response(
+          JSON.stringify({ error: `Domain ${domain} is already registered to another organization` }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // If this org already added the same domain, return the existing record
+      const { data: ownDomain } = await supabase
+        .from("sender_domains")
+        .select("*")
+        .eq("domain", domain)
+        .eq("org_id", org_id)
+        .maybeSingle();
+      if (ownDomain) {
+        return new Response(
+          JSON.stringify({ success: true, domain: ownDomain, reused: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Call Resend API to create domain; if it already exists there (from a
+      // stale previous attempt), fetch the existing record and adopt it.
+      let resendDomain: any;
+      try {
+        resendDomain = await resendFetch("/domains", "POST", RESEND_API_KEY, { name: domain });
+      } catch (e) {
+        const isAlreadyExists =
+          e instanceof ResendError &&
+          (e.status === 422 || /already\s*exists/i.test(e.message));
+        if (!isAlreadyExists) throw e;
+        const list = await resendFetch("/domains", "GET", RESEND_API_KEY);
+        const items: any[] = Array.isArray(list) ? list : list?.data || [];
+        const match = items.find((d) => d?.name?.toLowerCase() === domain.toLowerCase());
+        if (!match) throw e;
+        resendDomain = await resendFetch(`/domains/${match.id}`, "GET", RESEND_API_KEY);
+      }
 
       // Store domain info in our DB
       const { data: saved, error: dbError } = await supabase
@@ -343,8 +398,18 @@ serve(async (req) => {
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
+    const e = err as Error & { status?: number; body?: unknown };
+    console.error("manage-domains error:", {
+      message: e?.message,
+      status: (e as any)?.status,
+      body: (e as any)?.body,
+      stack: e?.stack,
+    });
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({
+        error: e?.message || "Internal error",
+        ...(e instanceof ResendError ? { resend_status: e.status, resend_body: e.body } : {}),
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

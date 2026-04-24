@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeErrorMessage } from "@/lib/invokeError";
 import { useOrg } from "@/contexts/OrgContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -169,7 +170,7 @@ export default function OrgSettings() {
       // Auto-expand the newly added domain
       if (data?.domain?.id) setExpandedDomain(data.domain.id);
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: "Error", description: await invokeErrorMessage(err) });
     }
     setAddingDomain(false);
   };
@@ -190,7 +191,7 @@ export default function OrgSettings() {
       }
       await fetchDomains();
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Verification failed", description: err.message });
+      toast({ variant: "destructive", title: "Verification failed", description: await invokeErrorMessage(err) });
     }
     setVerifyingId(null);
   };
@@ -206,7 +207,7 @@ export default function OrgSettings() {
       toast({ title: "Domain removed" });
       await fetchDomains();
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: "Error", description: await invokeErrorMessage(err) });
     }
   };
 

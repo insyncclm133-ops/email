@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeErrorMessage } from "@/lib/invokeError";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -172,7 +173,7 @@ export default function OnboardingWizard() {
       setDnsRecords(data?.resend?.records || data?.domain?.dns_records || []);
       toast({ title: "Domain added", description: "Configure the DNS records below." });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: "Error", description: await invokeErrorMessage(err) });
     }
     setAddingDomain(false);
   };
@@ -199,7 +200,7 @@ export default function OnboardingWizard() {
         toast({ title: "Not yet verified", description: "DNS records may take up to 48 hours to propagate. Try again later." });
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Verification failed", description: err.message });
+      toast({ variant: "destructive", title: "Verification failed", description: await invokeErrorMessage(err) });
     }
     setVerifying(false);
   };
